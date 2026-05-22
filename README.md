@@ -1,30 +1,41 @@
-# React + TypeScript + Vite
+# InternFlow - Monorepo
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Đây là repository chung cho toàn bộ dự án InternFlow (SaaS-like Internal Human Resource Management System).
 
-Currently, two official plugins are available:
+Dự án được thiết kế theo kiến trúc **Client-Server** với cấu trúc **Monorepo**:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Cấu trúc thư mục
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+```text
+phattrienungdungnhom7/
+│
+├── internflow-fe/        # Frontend Repository (Desktop App)
+│   # Công nghệ: Electron, React 18, TypeScript, Vite, Tailwind CSS
+│   # Dành cho Mentor Desktop App UI
+│
+├── internflow-be/        # Backend Repository (API Server)
+│   # Công nghệ: Node.js, Express, TypeScript, Prisma ORM
+│   # Dành cho Backend API, kết nối với Supabase Database
+│
+└── README.md             # Tài liệu dự án
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+## Cách chạy dự án
+
+### 1. Database (Supabase)
+Dự án sử dụng PostgreSQL host trên Supabase. Bạn cần được cấp quyền hoặc có chuỗi kết nối (Connection String) từ trưởng nhóm.
+
+### 2. Backend API
+1. Đi tới thư mục backend: `cd internflow-be`
+2. Cài đặt dependencies: `npm install`
+3. Tạo file `.env` dựa trên `.env.example` và điền thông tin database
+4. Chạy môi trường dev: `npm run dev`
+
+### 3. Frontend App
+1. Đi tới thư mục frontend: `cd internflow-fe`
+2. Cài đặt dependencies: `npm install`
+3. Chạy môi trường dev: `npm run dev`
+
+## Quy tắc đóng góp (Contributing)
+- Luôn kiểm tra xem bạn đang ở thư mục FE hay BE trước khi cài đặt package hoặc viết code.
+- Mỗi commit nên prefix rõ ràng ảnh hưởng đến phần nào (vd: `feat(fe): ...` hoặc `fix(be): ...`).
