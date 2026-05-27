@@ -10,14 +10,14 @@
   - **Core**: Electron (Desktop runtime)
   - **Frontend**: React (UI Framework)
   - **Typing**: TypeScript (Strict typing is mandatory)
-  - **Bundler**: Vite (Fast HMR and bundling)
+  - **Bundler**:  (Fast HMR and bundling)
   - **Styling**: Tailwind CSS (Utility-first CSS)
 
 ## 2. Core Architectural Mindset (Tư Duy Kiến Trúc)
 ### 2.1 Separation of Concerns (Tách Biệt Trách Nhiệm)
 - **Main Process (Electron)** vs **Renderer Process (React)**: Strict boundary.
 - **IPC Communication**: All communication between React and Electron MUST occur via `contextBridge` in `preload.ts`. 
-- **Security**: Node integration is **OFF** in the renderer. Do not enable it.
+- **Security**: NodVitee integration is **OFF** in the renderer. Do not enable it.
 
 ### 2.2 Scalability & Reusability (Dumb vs Smart Components)
 - **Dumb Components**: Highly reusable UI building blocks (e.g., Modals, Badges `Pass/Fail/To Do`, Kanban Cards, Custom Buttons). These must reside in `src/components/common/` and only receive data via `props`. They must NOT contain business logic or fetch data.

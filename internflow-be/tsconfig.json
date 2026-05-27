@@ -12,7 +12,12 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    // ========= ĐÃ XÓA "baseUrl": "." =========
+    "paths": {
+      "@/*": ["./src/*"]   // Quan trọng: phải có tiền tố "./"
+    }
+    // ========================================
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

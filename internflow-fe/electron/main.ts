@@ -5,6 +5,8 @@ import path from 'node:path'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// path.dirname -> lấy thư mục cha 
+
 
 // The built directory structure
 //
@@ -16,9 +18,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // │ │ └── preload.mjs
 // │
 process.env.APP_ROOT = path.join(__dirname, '..')
+// (_dirname,"..") -> đi đến thư mục cha ,lên 1 cấp thành internflow-fe
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
-export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
+export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'] // giống mới 
+// process.env.VITE_DEV_SERVER_URL 
 export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron')
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist')
 
@@ -32,7 +36,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
-  })
+  }) // thế này mà nó vẫn chạy nhỉ ? electron chạy main.js nên có thể path.join đến preload.mjs được.
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
