@@ -16,10 +16,11 @@ import { internService } from '../services/intern.service';
 
 const router = Router();
 
-// GET /api/interns - Lấy tất cả
+// GET /api/interns - Lấy tất cả thực tập sinh, có thể lọc theo status
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const interns = await internService.getAllInterns();
+    const status = req.query.status as string | undefined;
+    const interns = await internService.getAllInterns(status);
     res.json({ success: true, data: interns });
   } catch (error) {
     const err = error as Error;
@@ -27,12 +28,26 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/interns/:id - Lấy theo id
+// PUT /api/interns/:id/finalize - Chốt kết quả thực tập
+router.put('/:id/finalize', async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const { status, final_feedback } = req.body;
+    const result = await internService.finalizeIntern(id, { status, final_feedback });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    const err = error as Error;
+    const statusCode = err.message.includes('Không tìm thấy') ? 404 : 400;
+    res.status(statusCode).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/interns/:id - Lấy chi tiết hồ sơ thực tập sinh
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const interns = await internService.getInternById(id);
-    res.json({ success: true, data: interns });
+    const intern = await internService.getInternById(id);
+    res.json({ success: true, data: intern });
   } catch (error) {
     const err = error as Error;
     res.status(404).json({ success: false, message: err.message });
