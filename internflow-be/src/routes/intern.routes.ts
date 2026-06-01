@@ -28,6 +28,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // GET /api/interns/:id - Lấy theo id
+// tức là GET /api/interns/12345 sẽ lấy thực tập sinh có id là 12345
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
