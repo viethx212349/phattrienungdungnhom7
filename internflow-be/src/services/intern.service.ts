@@ -1,6 +1,8 @@
 import { internRepository } from '../repositories/intern.repository';
 import { task_status } from '@prisma/client';
 
+
+
 const computeTaskDisplayStatus = (status: task_status, due_date: Date | null): string => {
   const now = new Date();
   const isOverdue = due_date !== null && due_date < now && status !== 'DONE';
@@ -24,6 +26,9 @@ const computeTaskDisplayStatus = (status: task_status, due_date: Date | null): s
   return 'Đang làm';
 };
 
+
+
+
 export const internService = {
   // Lấy tất cả thực tập sinh, có thể lọc theo status
   getAllInterns: async (status?: string) => {
@@ -33,6 +38,11 @@ export const internService = {
       : undefined;
     return await internRepository.findAll(normalizedStatus);
   },
+
+
+
+
+
 
   // Lấy chi tiết intern theo id, kèm thống kê và lịch sử task
   getInternById: async (id: string) => {
@@ -80,6 +90,11 @@ export const internService = {
     };
   },
 
+
+
+
+
+
   // Chốt kết quả thực tập
   finalizeIntern: async (id: string, data: { status: string; final_feedback?: string }) => {
     const existingIntern = await internRepository.findById(id);
@@ -97,6 +112,10 @@ export const internService = {
       final_feedback: data.final_feedback ?? null
     });
   },
+
+
+
+
 
   // Tạo thực tập sinh mới (có validation)
   createIntern: async (data: { name: string; email: string }) => {
@@ -116,6 +135,10 @@ export const internService = {
     return await internRepository.create(data);
   },
 
+
+
+
+
   // Cập nhật thực tập sinh
   updateIntern: async (id: string, data: { name?: string; email?: string }) => {
     const existingIntern = await internRepository.findById(id);
@@ -132,6 +155,10 @@ export const internService = {
 
     return await internRepository.update(id, data);
   },
+
+
+
+
 
   // Xóa thực tập sinh
   deleteIntern: async (id: string) => {

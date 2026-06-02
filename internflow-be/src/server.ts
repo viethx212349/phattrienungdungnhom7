@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import internRoutes from './routes/intern.routes';
-import {internService} from './services/intern.service';
+import taskRoutes from './routes/tasks.routes';
 
 // Load environment variables
 dotenv.config();
@@ -17,10 +17,10 @@ app.use(cors());
 app.use(express.json());
 
 // ========================
-// Routes (sẽ thêm sau)
+// Routes
 // ========================
-// import internRoutes from './routes/intern.routes';
 app.use('/api/interns', internRoutes);
+app.use('/api/tasks', taskRoutes);
 
 
 // ========================

@@ -2,6 +2,8 @@ import { prisma } from '../lib/prisma';
 
 type InternStatus = 'ACTIVE' | 'PASSED' | 'FAILED';
 
+
+// tìm theo thực tập sinh .
 export const internRepository = {
   // Tìm tất cả intern, có thể lọc theo status
   findAll: async (status?: InternStatus) => {
@@ -90,3 +92,6 @@ export const internRepository = {
     });
   }
 };
+
+
+

@@ -29,7 +29,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 
-// GET /api/interns/:id - Lấy theo id
+
 
 // PUT /api/interns/:id/finalize - Chốt kết quả thực tập
 router.put('/:id/finalize', async (req: Request, res: Response) => {
@@ -45,6 +45,9 @@ router.put('/:id/finalize', async (req: Request, res: Response) => {
   }
 });
 
+
+
+
 // GET /api/interns/:id - Lấy chi tiết hồ sơ thực tập sinh
 
 router.get('/:id', async (req: Request, res: Response) => {
@@ -58,6 +61,8 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
+
+
 // POST /api/interns - Tạo mới
 router.post('/', async (req: Request, res: Response) => {
   try {
@@ -69,6 +74,10 @@ router.post('/', async (req: Request, res: Response) => {
     res.status(400).json({ success: false, message: err.message });
   }
 });
+
+
+
+
 
 // PUT /api/interns/:id - Cập nhật
 router.put('/:id', async (req: Request, res: Response) => {
@@ -83,6 +92,10 @@ router.put('/:id', async (req: Request, res: Response) => {
     res.status(status).json({ success: false, message: err.message });
   }
 });
+
+
+
+
 
 // DELETE /api/interns/:id - Xóa
 router.delete('/:id', async (req: Request, res: Response) => {
