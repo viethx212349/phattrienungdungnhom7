@@ -129,6 +129,29 @@ export const tasksRepository = {
         submission_summary: data.submission_summary,
         submitted_at: data.submitted_at,
         closed_at: data.closed_at
+      },
+      include: {
+        interns: {
+          select: {
+            id: true,
+            full_name: true,
+            email: true,
+            position: true,
+            phone: true,
+            school: true,
+            status: true
+          }
+        },
+        task_attachments: {
+          select: {
+            id: true,
+            file_name: true,
+            file_url: true,
+            file_size: true,
+            type: true,
+            created_at: true
+          }
+        }
       }
     });
   },

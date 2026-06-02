@@ -195,7 +195,7 @@ export const taskService = {
       submitted_at: null,
       closed_at: null
     });
-    return mapTaskSummary(updated);
+    return mapTaskDetail(updated);
   },
 
   createTask: async (data: {
