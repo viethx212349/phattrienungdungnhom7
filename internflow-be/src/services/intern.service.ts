@@ -1,27 +1,52 @@
 import { internRepository } from '../repositories/intern.repository';
 import { task_status } from '@prisma/client';
 
-const computeTaskDisplayStatus = (status: task_status, due_date: Date | null): string => {
-  const now = new Date();
-  const isOverdue = due_date !== null && due_date < now && status !== 'DONE';
+// ============================================================
+// [API Contract] Task Status & Display Mapping
+// ============================================================
+// Raw DB status (task_status enum):
+//   TODO | IN_PROGRESS | IN_REVIEW | DONE
+//
+// Display status mapping (Backend tính, Frontend chỉ dùng để hiển thị):
+//   TODO                                   → UNASSIGNED
+//   IN_PROGRESS + rejected_count = 0       → IN_PROGRESS
+//   IN_PROGRESS + rejected_count > 0       → NEEDS_REVISION
+//   IN_REVIEW                              → WAITING_REVIEW
+//   DONE + submitted_at != null            → COMPLETED
+//   DONE + submitted_at = null             → OVERDUE
+// ============================================================
 
-  if (status === 'DONE') {
-    return 'Hoàn thành';
-  }
+export type TaskDisplayStatus =
+  | 'UNASSIGNED'
+  | 'IN_PROGRESS'
+  | 'NEEDS_REVISION'
+  | 'WAITING_REVIEW'
+  | 'COMPLETED'
+  | 'OVERDUE';
 
-  if (status === 'IN_REVIEW') {
-    return 'Chờ duyệt';
-  }
-
-  if (isOverdue) {
-    return 'Trễ hạn';
+export const computeTaskDisplayStatus = (
+  status: task_status,
+  rejected_count: number,
+  submitted_at: Date | null
+): TaskDisplayStatus => {
+  if (status === 'TODO') {
+    return 'UNASSIGNED';
   }
 
   if (status === 'IN_PROGRESS') {
-    return 'Đang làm';
+    return rejected_count > 0 ? 'NEEDS_REVISION' : 'IN_PROGRESS';
   }
 
-  return 'Đang làm';
+  if (status === 'IN_REVIEW') {
+    return 'WAITING_REVIEW';
+  }
+
+  if (status === 'DONE') {
+    return submitted_at !== null ? 'COMPLETED' : 'OVERDUE';
+  }
+
+  // fallback (không nên xảy ra nếu schema đúng)
+  return 'IN_PROGRESS';
 };
 
 export const internService = {
@@ -45,17 +70,15 @@ export const internService = {
     const now = new Date();
 
     const total_tasks = tasks.length;
-    const completed_count = tasks.filter((task) => task.status === 'DONE').length;
-    const overdue_count = tasks.filter((task) => {
-      return task.status !== 'DONE' && task.due_date !== null && task.due_date < now;
-    }).length;
+    const completed_count = tasks.filter((task) => task.status === 'DONE' && task.submitted_at !== null).length;
+    const overdue_count = tasks.filter((task) => task.status === 'DONE' && task.submitted_at === null).length;
     const total_revisions = tasks.reduce((sum, task) => sum + task.rejected_count, 0);
 
     const task_history = tasks.map((task) => ({
       name: task.title,
       deadline: task.due_date,
       raw_status: task.status,
-      display_status: computeTaskDisplayStatus(task.status, task.due_date),
+      display_status: computeTaskDisplayStatus(task.status, task.rejected_count, task.submitted_at),
       rejected_count: task.rejected_count,
       latest_feedback: task.mentor_feedback ?? null,
       submitted_at: task.submitted_at,
