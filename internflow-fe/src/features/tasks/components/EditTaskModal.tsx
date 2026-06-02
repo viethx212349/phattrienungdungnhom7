@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { CalendarDays, Image, Paperclip, Trash2 } from "lucide-react";
-import Modal from "../../../components/Modal";
+import { CalendarDays, FileText, Image, Paperclip, Trash2 } from "lucide-react";
 import { mockInterns } from "../../../data/mockInterns";
-import type { Task } from "../../../types/task";
+import type { Task, RawTaskStatus } from "../../../types/task";
 
 interface EditTaskModalProps {
   task: Task;
@@ -18,10 +17,24 @@ interface EditTaskModalProps {
   onDelete: () => void;
 }
 
+const rawStatusLabels: Record<RawTaskStatus, string> = {
+  TODO: "TODO",
+  IN_PROGRESS: "IN PROGRESS",
+  IN_REVIEW: "IN REVIEW",
+  DONE: "DONE",
+};
+
+const rawStatusStyles: Record<RawTaskStatus, string> = {
+  TODO: "bg-gray-100 text-gray-600",
+  IN_PROGRESS: "bg-blue-100 text-blue-700",
+  IN_REVIEW: "bg-amber-100 text-amber-700",
+  DONE: "bg-green-100 text-green-700",
+};
+
 const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps) => {
   const [formState, setFormState] = useState({
     title: task.title,
-    description: task.description,
+    description: task.description ?? "",
     assigneeId: task.assigneeId || "",
     assigneeName: task.assigneeName || "",
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
@@ -33,7 +46,7 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
   useEffect(() => {
     setFormState({
       title: task.title,
-      description: task.description,
+      description: task.description ?? "",
       assigneeId: task.assigneeId || "",
       assigneeName: task.assigneeName || "",
       dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
@@ -67,7 +80,7 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
   const handleRemoveAttachment = (name: string) => {
     setFormState((current) => ({
       ...current,
-      attachments: current.attachments.filter((attachment) => attachment !== name),
+      attachments: current.attachments.filter((a) => a !== name),
     }));
   };
 
@@ -76,7 +89,6 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
       setError("Tiêu đề không được để trống");
       return;
     }
-
     setError("");
     onSave({
       title: formState.title.trim(),
@@ -88,193 +100,191 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
     });
   };
 
-  const handleChooseFile = () => {
-    fileInputRef.current?.click();
-  };
+  const selectedInternObj = mockInterns.find((i) => i.id === formState.assigneeId);
+  const initials = selectedInternObj
+    ? selectedInternObj.fullName.split(" ").map((w) => w[0]).slice(-2).join("")
+    : null;
 
   return (
-    <Modal isOpen={true} onClose={onCancel}>
-      <div className="flex flex-col">
-        <div className="border-b px-10 py-8">
-          <h2 className="text-4xl font-black uppercase">Chi tiết công việc</h2>
+    <div className="flex flex-col">
+      {/* ── Header ── */}
+      <div className="flex items-center gap-3 px-7 pt-7 pb-5 border-b border-gray-100">
+        <h2 className="text-base font-bold text-gray-900">Chi tiết công việc</h2>
+        <span
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${rawStatusStyles[task.rawStatus]}`}
+        >
+          {rawStatusLabels[task.rawStatus]}
+        </span>
+      </div>
+
+      {/* ── Body ── */}
+      <div className="px-7 py-6 space-y-5">
+        {/* Title */}
+        <div>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">
+            Tiêu đề công việc
+          </label>
+          <input
+            type="text"
+            value={formState.title}
+            onChange={(e) => setFormState((c) => ({ ...c, title: e.target.value }))}
+            className={`w-full rounded-lg border px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 ${
+              error ? "border-red-400" : "border-gray-200"
+            }`}
+          />
+          {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
         </div>
 
-        <div className="space-y-8 px-10 py-8">
+        {/* Assignee + Due Date */}
+        <div className="grid grid-cols-2 gap-4">
+          {/* Assignee */}
           <div>
-            <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-gray-500">
-              Tiêu đề nhiệm vụ
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">
+              Người thực hiện
             </label>
-            <input
-              type="text"
-              value={formState.title}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-              className="w-full rounded-xl border border-gray-200 px-5 py-4 outline-none transition focus:border-black"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-6">
-            <div>
-              <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-gray-500">
-                Người thực hiện
-              </label>
+            <div className="relative flex items-center rounded-lg border border-gray-200 bg-white transition focus-within:border-gray-400">
+              {initials ? (
+                <div className="ml-3 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white">
+                  {initials}
+                </div>
+              ) : null}
               <select
                 value={formState.assigneeId}
                 onChange={handleAssigneeChange}
-                className="w-full rounded-xl border border-gray-200 px-5 py-4 outline-none transition focus:border-black"
+                className={`w-full appearance-none bg-transparent py-3 pr-9 text-sm text-gray-800 outline-none ${
+                  initials ? "pl-2" : "pl-4"
+                }`}
               >
-                <option value="">Chọn người thực hiện...</option>
+                <option value="">Chọn thực tập sinh...</option>
                 {mockInterns.map((intern) => (
                   <option key={intern.id} value={intern.id}>
                     {intern.fullName}
                   </option>
                 ))}
               </select>
-            </div>
-
-            <div>
-              <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-gray-500">
-                Hạn hoàn thành
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={formState.dueDate}
-                  onChange={(event) =>
-                    setFormState((current) => ({
-                      ...current,
-                      dueDate: event.target.value,
-                    }))
-                  }
-                  min={new Date().toISOString().split("T")[0]}
-                  className="w-full rounded-xl border border-gray-200 px-5 py-4 outline-none transition focus:border-black"
-                />
-                <CalendarDays
-                  size={20}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+              <div className="pointer-events-none absolute right-3 text-gray-400">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 5l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </div>
             </div>
           </div>
 
+          {/* Due date */}
           <div>
-            <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-gray-500">
-              Mô tả công việc
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">
+              Hạn hoàn thành
             </label>
-            <textarea
-              rows={5}
-              value={formState.description}
-              onChange={(event) =>
-                setFormState((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-              className="w-full resize-none rounded-xl border border-gray-200 px-5 py-4 outline-none transition focus:border-black"
-            />
-          </div>
-
-          <div>
-            <button
-              type="button"
-              onClick={handleChooseFile}
-              className="flex h-[180px] w-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 transition hover:bg-slate-100"
-            >
-              <div className="flex items-center gap-3 text-slate-500">
-                <Paperclip size={22} />
-                <Image size={22} />
-                <span className="font-bold tracking-wide">Đính kèm tệp hoặc ảnh</span>
-              </div>
-              <div className="text-sm text-slate-500">
-                {formState.attachments.length > 0
-                  ? `${formState.attachments.length} file đã chọn`
-                  : "Chọn tệp để đính kèm"}
-              </div>
-            </button>
-
-            {formState.attachments.length > 0 && (
-              <div className="mt-4">
-                <p className="mb-3 font-semibold text-sm text-gray-700">Tệp đính kèm</p>
-                <div className="space-y-3">
-                  {formState.attachments.map((attachment) => {
-                    const ext = attachment.split('.').pop()?.toLowerCase() || '';
-                    const isImage = ['png','jpg','jpeg','gif','webp'].includes(ext);
-
-                    return (
-                      <div
-                        key={attachment}
-                        className="flex items-center justify-between rounded-2xl border border-gray-200 bg-white px-4 py-3"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-gray-600">
-                            {isImage ? <Image size={16} /> : <Paperclip size={16} />}
-                          </div>
-                          <div className="max-w-[380px]">
-                            <div className="truncate font-medium text-gray-900">{attachment}</div>
-                            <div className="text-xs text-gray-500">{isImage ? 'Image file' : `${ext.toUpperCase() || 'FILE'}`}</div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAttachment(attachment)}
-                            className="text-red-600 transition hover:text-red-800"
-                            aria-label={`Remove ${attachment}`}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              hidden
-              onChange={handleFileChange}
-            />
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex items-center justify-between gap-5 border-t pt-8">
-            <button
-              type="button"
-              onClick={onDelete}
-              className="rounded-2xl border border-red-200 bg-red-50 px-6 py-3 text-red-700 transition hover:bg-red-100"
-            >
-              Xóa task
-            </button>
-
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={onCancel}
-                className="rounded-2xl border border-gray-300 bg-white px-6 py-3 font-semibold text-gray-700 transition hover:bg-gray-100"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={handleSave}
-                className="rounded-2xl bg-black px-6 py-3 font-semibold text-white transition hover:bg-slate-900"
-              >
-                Lưu thay đổi
-              </button>
+            <div className="relative flex items-center rounded-lg border border-gray-200 transition focus-within:border-gray-400">
+              <CalendarDays size={15} className="ml-3 flex-shrink-0 text-gray-400" />
+              <input
+                type="date"
+                value={formState.dueDate}
+                onChange={(e) => setFormState((c) => ({ ...c, dueDate: e.target.value }))}
+                min={new Date().toISOString().split("T")[0]}
+                className="w-full bg-transparent py-3 pl-2 pr-4 text-sm text-gray-800 outline-none"
+              />
             </div>
           </div>
         </div>
+
+        {/* Description */}
+        <div>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">
+            Mô tả công việc
+          </label>
+          <textarea
+            rows={4}
+            value={formState.description}
+            onChange={(e) => setFormState((c) => ({ ...c, description: e.target.value }))}
+            className="w-full resize-y rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-gray-400"
+          />
+        </div>
+
+        {/* Attachments */}
+        <div>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">
+            Tài liệu đính kèm
+            {formState.attachments.length > 0 && (
+              <span className="ml-1 text-gray-500">({formState.attachments.length})</span>
+            )}
+          </label>
+
+          {formState.attachments.length > 0 && (
+            <div className="mb-3 space-y-2 rounded-lg border border-gray-200 p-2">
+              {formState.attachments.map((attachment) => {
+                const ext = attachment.split(".").pop()?.toLowerCase() || "";
+                const isImage = ["png", "jpg", "jpeg", "gif", "webp"].includes(ext);
+                const isPdf = ext === "pdf";
+
+                return (
+                  <div
+                    key={attachment}
+                    className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500">
+                        {isImage ? <Image size={16} /> : isPdf ? <FileText size={16} /> : <Paperclip size={16} />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-gray-800">{attachment}</p>
+                        <p className="text-xs text-gray-400">{isImage ? "Image file" : `${ext.toUpperCase() || "FILE"}`}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveAttachment(attachment)}
+                      className="ml-3 flex-shrink-0 rounded-md p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 py-3 text-sm text-gray-400 transition hover:border-gray-400 hover:text-gray-600"
+          >
+            <Paperclip size={15} />
+            Thêm tệp đính kèm
+          </button>
+          <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileChange} />
+        </div>
       </div>
-    </Modal>
+
+      {/* ── Footer ── */}
+      <div className="flex items-center justify-between px-7 py-4 border-t border-gray-100">
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+        >
+          <Trash2 size={15} />
+          Xóa task
+        </button>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2.5 text-sm font-medium text-gray-500 transition hover:text-gray-800"
+          >
+            Hủy
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+          >
+            Lưu thay đổi
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 

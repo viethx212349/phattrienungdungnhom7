@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Mail, Phone } from "lucide-react";
 import Modal from "./Modal";
 import type { Intern } from "../types/intern";
 
@@ -22,102 +21,128 @@ const InternEvaluationModal = ({ isOpen, onClose, intern }: InternEvaluationModa
 
   if (!intern) return null;
 
+  const initials = intern.fullName.split(" ").map((w) => w[0]).slice(-2).join("");
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="max-w-3xl rounded-[30px] bg-white p-8 shadow-2xl">
-        <div className="flex items-center justify-between">
+      <div className="flex flex-col">
+        {/* ── Header ── */}
+        <div className="px-7 pt-7 pb-5 border-b border-gray-100">
+          <h2 className="text-base font-semibold text-gray-900">Đánh giá Thực tập sinh</h2>
+        </div>
+
+        {/* ── Body ── */}
+        <div className="px-7 py-6 space-y-6">
+          {/* Profile */}
+          <div className="flex items-center gap-4">
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl bg-slate-900 text-lg font-black text-white">
+              {initials}
+            </div>
+            <div>
+              <p className="text-lg font-bold text-gray-900">{intern.fullName}</p>
+              <p className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-gray-400 inline-block" />
+                <span className="uppercase tracking-wider">{intern.position}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Comment */}
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-slate-500">Đánh giá Thực tập sinh</p>
-            <h2 className="mt-2 text-3xl font-bold text-slate-950">{intern.fullName}</h2>
-            <p className="mt-2 text-sm uppercase tracking-[0.15em] text-slate-500">{intern.position}</p>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-gray-400">
+              Nhận xét chung từ mentor <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={5}
+              placeholder="Nhập đánh giá chi tiết về quá trình làm việc, kỹ năng chuyên môn và thái độ của thực tập sinh..."
+              className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-gray-400 focus:bg-white"
+            />
           </div>
-        </div>
 
-        <div className="mt-8 flex items-center gap-4 rounded-[24px] border border-slate-200 bg-slate-50 p-5">
-          <div className="flex h-20 w-20 items-center justify-center rounded-[24px] bg-slate-900 text-3xl font-black text-white">
-            {intern.fullName
-              .split(" ")
-              .map((word) => word[0])
-              .slice(-2)
-              .join("")}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center gap-3 text-slate-700">
-              <Mail size={18} />
-              <span>{intern.email}</span>
+          {/* Decision */}
+          <div>
+            <p className="mb-3 text-xs font-bold uppercase tracking-wider text-gray-400">
+              Quyết định cuối cùng
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              {/* PASS */}
+              <button
+                type="button"
+                onClick={() => setDecision("PASS")}
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                  decision === "PASS"
+                    ? "border-emerald-200 bg-emerald-50"
+                    : "border-gray-200 bg-white hover:bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-white text-sm font-bold">
+                    ✓
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Đạt (PASS)</p>
+                    <p className="text-xs text-gray-400">Đủ điều kiện chính thức.</p>
+                  </div>
+                </div>
+                <div
+                  className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition ${
+                    decision === "PASS" ? "border-emerald-500 bg-emerald-500" : "border-gray-300"
+                  }`}
+                >
+                  {decision === "PASS" && (
+                    <div className="h-2 w-2 rounded-full bg-white" />
+                  )}
+                </div>
+              </button>
+
+              {/* FAIL */}
+              <button
+                type="button"
+                onClick={() => setDecision("FAIL")}
+                className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                  decision === "FAIL"
+                    ? "border-red-200 bg-red-50"
+                    : "border-gray-200 bg-white hover:bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-500 text-white text-sm font-bold">
+                    ✕
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Không Đạt (FAIL)</p>
+                    <p className="text-xs text-gray-400">Chưa đạt yêu cầu.</p>
+                  </div>
+                </div>
+                <div
+                  className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition ${
+                    decision === "FAIL" ? "border-red-500 bg-red-500" : "border-gray-300"
+                  }`}
+                >
+                  {decision === "FAIL" && (
+                    <div className="h-2 w-2 rounded-full bg-white" />
+                  )}
+                </div>
+              </button>
             </div>
-            <div className="flex items-center gap-3 text-slate-700">
-              <Phone size={18} />
-              <span>{intern.phone}</span>
-            </div>
           </div>
         </div>
 
-        <div className="mt-8">
-          <label className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">
-            Nhận xét chung từ mentor <span className="text-red-500">*</span>
-          </label>
-          <textarea
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-            rows={6}
-            placeholder="Nhập đánh giá chi tiết về quá trình làm việc, kỹ năng chuyên môn và thái độ của thực tập sinh..."
-            className="mt-3 w-full rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-700 outline-none transition focus:border-slate-400 focus:bg-white"
-          />
-        </div>
-
-        <div className="mt-8 rounded-[30px] border border-slate-200 bg-slate-50 p-6">
-          <p className="mb-4 text-sm font-semibold uppercase tracking-[0.15em] text-slate-500">Quyết định cuối cùng</p>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <button
-              type="button"
-              onClick={() => setDecision("PASS")}
-              className={`flex items-center gap-4 rounded-[28px] border px-5 py-4 text-left transition ${
-                decision === "PASS"
-                  ? "border-emerald-300 bg-emerald-50 shadow-sm"
-                  : "border-slate-200 bg-white hover:bg-slate-100"
-              }`}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white">
-                ✓
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">Đạt (PASS)</p>
-                <p className="mt-1 text-sm text-slate-500">Đủ điều kiện chính thức.</p>
-              </div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDecision("FAIL")}
-              className={`flex items-center gap-4 rounded-[28px] border px-5 py-4 text-left transition ${
-                decision === "FAIL"
-                  ? "border-rose-300 bg-rose-50 shadow-sm"
-                  : "border-slate-200 bg-white hover:bg-slate-100"
-              }`}
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rose-500 text-white">
-                ✕
-              </div>
-              <div>
-                <p className="font-semibold text-slate-900">Không đạt (FAIL)</p>
-                <p className="mt-1 text-sm text-slate-500">Chưa đạt yêu cầu.</p>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-end">
+        {/* ── Footer ── */}
+        <div className="flex items-center justify-end gap-3 px-7 py-4 border-t border-gray-100">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+            className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
           >
             Hủy
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-slate-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
+            className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
           >
             Xác nhận đánh giá
           </button>

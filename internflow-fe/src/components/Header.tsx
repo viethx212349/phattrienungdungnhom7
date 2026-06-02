@@ -15,7 +15,7 @@ const Header = ({ theme }: HeaderProps) => {
           : "border-slate-200 bg-[#f5f5f5] text-black"
       }`}
     >
-      <h2 className="text-2xl font-bold">Intern Management</h2>
+      <h2 className="text-sm font-bold uppercase tracking-[0.25em]">Intern Management</h2>
       <div className="flex items-center gap-5">
         <Bell className="cursor-pointer" />
         <CircleUserRound className="cursor-pointer" />
