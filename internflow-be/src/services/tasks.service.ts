@@ -337,5 +337,31 @@ export const taskService = {
     }
     await tasksRepository.delete(id);
     return { id };
+  },
+
+  autoCloseOverdueTasks: async () => {
+    const now = new Date();
+    const allTasks = await tasksRepository.findAll();
+    const overdueTasks = allTasks.filter(
+      (task) =>
+        task.status === 'IN_PROGRESS' &&
+        task.due_date !== null &&
+        task.due_date < now
+    );
+
+    const closedIds: string[] = [];
+    for (const task of overdueTasks) {
+      await tasksRepository.update(task.id, {
+        status: 'DONE',
+        closed_at: now
+      });
+      closedIds.push(task.id);
+    }
+
+    return {
+      closedCount: closedIds.length,
+      taskIds: closedIds,
+      ranAt: now
+    };
   }
 };

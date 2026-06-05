@@ -6,6 +6,29 @@ export type InternStatus = 'ACTIVE' | 'PASSED' | 'FAILED';
 
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
 
+// ============================================================
+// [API Contract] Task Display Status
+// ============================================================
+// Frontend KHÔNG tự tính từ raw data.
+// Chỉ dùng display_status do Backend trả về.
+//
+// Mapping (Backend xử lý):
+//   TODO                                   → UNASSIGNED
+//   IN_PROGRESS + rejected_count = 0       → IN_PROGRESS
+//   IN_PROGRESS + rejected_count > 0       → NEEDS_REVISION
+//   IN_REVIEW                              → WAITING_REVIEW
+//   DONE + submitted_at != null            → COMPLETED
+//   DONE + submitted_at = null             → OVERDUE
+// ============================================================
+
+export type TaskDisplayStatus =
+  | 'UNASSIGNED'
+  | 'IN_PROGRESS'
+  | 'NEEDS_REVISION'
+  | 'WAITING_REVIEW'
+  | 'COMPLETED'
+  | 'OVERDUE';
+
 export type NotificationType = 'NEW_TASK' | 'REMINDER' | 'REJECTED';
 
 export type AttachmentType = 'MENTOR_DOC' | 'INTERN_SUBMIT';
@@ -73,6 +96,34 @@ export interface TaskAttachment {
   created_at: string;
   // Relations
   task?: Task;
+}
+
+// ============================================================
+// Task History — dùng trong intern profile response (GET /api/interns/:id)
+// Backend trả display_status, Frontend dùng trực tiếp để hiển thị badge
+// ============================================================
+
+export interface TaskHistory {
+  name: string;
+  deadline: string | null;
+  raw_status: TaskStatus;
+  display_status: TaskDisplayStatus;
+  rejected_count: number;
+  latest_feedback: string | null;
+  submitted_at: string | null;
+  closed_at: string | null;
+}
+
+// ============================================================
+// Intern Detail — response từ GET /api/interns/:id
+// ============================================================
+
+export interface InternDetail extends Intern {
+  total_tasks: number;
+  completed_count: number;
+  overdue_count: number;
+  total_revisions: number;
+  task_history: TaskHistory[];
 }
 
 // ============================================================

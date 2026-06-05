@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import internRoutes from './routes/intern.routes';
 import taskRoutes from './routes/tasks.routes';
+import { startOverdueTaskScheduler } from './lib/scheduler';
 
 // Load environment variables
 dotenv.config();
@@ -40,6 +41,7 @@ app.get('/api/health', (_req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 InternFlow Backend running at http://localhost:${PORT}`);
   console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
+  startOverdueTaskScheduler();
 });
 
 export default app;
