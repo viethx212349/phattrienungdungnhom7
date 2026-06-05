@@ -1,9 +1,9 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { CalendarDays, Image, LoaderCircle, Paperclip } from "lucide-react";
 
 import Modal from "../../../components/Modal";
-import { mockInterns } from "../../../data/mockInterns";
+import { api } from "../../../lib/api";
 import type { Task } from "../../../types/task";
 
 interface CreateTaskModalProps {
@@ -26,7 +26,14 @@ const CreateTaskModal = ({
 }: CreateTaskModalProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
+  const [interns, setInterns] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      api.getInterns("ACTIVE").then(setInterns).catch(console.error);
+    }
+  }, [isOpen]);
 
   const {
     register,
@@ -37,27 +44,49 @@ const CreateTaskModal = ({
 
   const onSubmit = async (data: TaskFormValues) => {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      // 1. Upload files first if any
+      const attachments = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          const uploaded = await api.uploadFile(file);
+          attachments.push({
+            file_name: uploaded.name,
+            file_url: uploaded.url,
+            file_size: uploaded.size,
+            type: uploaded.type.includes("image") ? "IMAGE" : "FILE",
+          });
+        }
+      }
 
-    const chosenIntern = mockInterns.find((i) => i.id === data.assigneeId);
-
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      title: data.title,
-      description: data.description,
-      assigneeId: data.assigneeId || undefined,
-      assigneeName: chosenIntern?.fullName,
-      dueDate: data.dueDate ? new Date(data.dueDate).toISOString() : undefined,
-      rawStatus: "TODO",
-      displayStatus: data.assigneeId ? "IN_PROGRESS" : "UNASSIGNED",
-      attachments: files.map((f) => f.name),
-    };
-
-    onCreateTask(newTask);
-    setIsSubmitting(false);
-    reset();
-    setFiles([]);
-    onClose();
+      // 2. Create task
+      if (data.assigneeId) {
+        // Create assigned task
+        await api.createTask({
+          title: data.title,
+          description: data.description,
+          intern_id: data.assigneeId,
+          due_date: data.dueDate ? new Date(data.dueDate).toISOString() : undefined,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        });
+      } else {
+        // Create unassigned task
+        await api.createTask({
+          title: data.title,
+          description: data.description,
+          attachments: attachments.length > 0 ? attachments : undefined,
+        });
+      }
+      onCreateTask({} as any); // trigger refetch
+      reset();
+      setFiles([]);
+      onClose();
+    } catch (err) {
+      console.error("Create task failed:", err);
+      alert(err instanceof Error ? err.message : "Tạo task thất bại");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,15 +133,15 @@ const CreateTaskModal = ({
                 </label>
                 <div className="relative">
                   <select
-                    {...register("assigneeId", { required: "Vui lòng chọn người nhận" })}
+                    {...register("assigneeId")}
                     className={`w-full appearance-none rounded-lg border py-3 pl-4 pr-9 text-sm text-gray-800 outline-none transition focus:border-gray-400 ${
                       errors.assigneeId ? "border-red-400" : "border-gray-200"
                     }`}
                   >
                     <option value="">Chọn thành viên phụ trách...</option>
-                    {mockInterns.map((intern) => (
+                    {interns.map((intern) => (
                       <option key={intern.id} value={intern.id}>
-                        {intern.fullName}
+                        {intern.full_name}
                       </option>
                     ))}
                   </select>
@@ -135,7 +164,14 @@ const CreateTaskModal = ({
                 <div className="relative flex items-center rounded-lg border border-gray-200 transition focus-within:border-gray-400">
                   <input
                     type="date"
-                    {...register("dueDate", { required: "Vui lòng chọn ngày" })}
+                    {...register("dueDate", {
+                      validate: (value, formValues) => {
+                        if (formValues.assigneeId && !value) {
+                          return "Vui lòng chọn ngày khi đã gán người thực hiện";
+                        }
+                        return true;
+                      }
+                    })}
                     min={new Date().toISOString().split("T")[0]}
                     className="w-full bg-transparent py-3 pl-4 pr-10 text-sm text-gray-800 outline-none"
                   />

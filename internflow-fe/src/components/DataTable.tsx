@@ -14,7 +14,7 @@ interface DataTableProps {
 }
 
 const DataTable = ({ page, limit }: DataTableProps) => {
-  const { data, isLoading } = useInterns({ page, limit });
+  const { data, isLoading, refetch } = useInterns({ page, limit });
   const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
 
@@ -206,18 +206,20 @@ const DataTable = ({ page, limit }: DataTableProps) => {
                   <Download size={15} />
                   Tải CV
                 </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openReviewModal();
-                  }}
-                  className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
-                >
-                  <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-                    <path d="M12.5 4.5l-7 7L2 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                  Tiến hành đánh giá
-                </button>
+                {selectedIntern?.status === InternStatus.INTERNING && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openReviewModal();
+                    }}
+                    className="flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
+                      <path d="M12.5 4.5l-7 7L2 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                    Tiến hành đánh giá
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -229,6 +231,11 @@ const DataTable = ({ page, limit }: DataTableProps) => {
         isOpen={isReviewOpen}
         onClose={closeReviewModal}
         intern={selectedIntern}
+        onEvaluate={() => {
+          closeReviewModal();
+          closeInternModal();
+          refetch();
+        }}
       />
 
       {/* ── Pagination ── */}

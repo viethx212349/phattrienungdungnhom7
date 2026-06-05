@@ -87,6 +87,7 @@ export const tasksRepository = {
     intern_id?: string | null;
     due_date?: Date | null;
     assigned_at?: Date | null;
+    task_attachments?: any;
   }) => {
     return await prisma.tasks.create({
       data: {
@@ -95,7 +96,8 @@ export const tasksRepository = {
         status: data.status,
         intern_id: data.intern_id ?? null,
         due_date: data.due_date ?? null,
-        assigned_at: data.assigned_at ?? null
+        assigned_at: data.assigned_at ?? null,
+        task_attachments: data.task_attachments
       }
     });
   },

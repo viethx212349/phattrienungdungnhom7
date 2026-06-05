@@ -1,0 +1,1 @@
+{"root":["./src/server.ts","./src/lib/prisma.ts","./src/lib/scheduler.ts","./src/middlewares/upload.middleware.ts","./src/repositories/intern.repository.ts","./src/repositories/tasks.repository.ts","./src/routes/intern.routes.ts","./src/routes/tasks.routes.ts","./src/routes/upload.routes.ts","./src/services/intern.service.ts","./src/services/tasks.service.ts"],"version":"6.0.3"}

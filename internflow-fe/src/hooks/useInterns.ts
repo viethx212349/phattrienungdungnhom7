@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { mockInterns } from "../data/mockInterns";
+import { api } from "../lib/api";
 import type { Intern } from "../types/intern";
+import { InternStatus } from "../types/intern";
 
 interface UseInternsParams {
   page: number;
@@ -11,23 +12,34 @@ export const useInterns = ({ page, limit }: UseInternsParams) => {
   const [data, setData] = useState<Intern[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+  const fetchInterns = () => {
     setIsLoading(true);
-
-    const timeout = setTimeout(() => {
-      const start = (page - 1) * limit;
-      const end = start + limit;
-         
-      setData(mockInterns.slice(start, end));
+    api.getInterns().then((res) => {
+      const mapped: Intern[] = res.map((i: any) => ({
+        id: i.id,
+        fullName: i.full_name,
+        code: i.intern_code,
+        position: i.position || "N/A",
+        email: i.email || "N/A",
+        phone: i.phone || "N/A",
+        status: i.status === "ACTIVE" ? InternStatus.INTERNING : (i.status === "FAILED" ? InternStatus.FAIL : InternStatus.PASSED)
+      }));
+      setData(mapped);
       setIsLoading(false);
-    }, 1200);
+    }).catch(err => {
+      console.error(err);
+      setIsLoading(false);
+    });
+  };
 
-    return () => clearTimeout(timeout);
+  useEffect(() => {
+    fetchInterns();
   }, [page, limit]);
 
   return {
     data,
     isLoading,
-    total: mockInterns.length,
+    total: data.length,
+    refetch: fetchInterns
   };
 };

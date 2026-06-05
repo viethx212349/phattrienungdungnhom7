@@ -1,8 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import internRoutes from './routes/intern.routes';
 import taskRoutes from './routes/tasks.routes';
+import uploadRoutes from './routes/upload.routes';
 import { startOverdueTaskScheduler } from './lib/scheduler';
 
 // Load environment variables
@@ -16,12 +18,14 @@ const PORT = process.env.PORT || 4000;
 // ========================
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ========================
 // Routes
 // ========================
 app.use('/api/interns', internRoutes);
 app.use('/api/tasks', taskRoutes);
+app.use('/api/upload', uploadRoutes);
 
 
 // ========================

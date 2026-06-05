@@ -1,4 +1,4 @@
-export enum InternStatus { INTERNING = "ĐANG THỰC TẬP", PASSED = "ĐÃ PASS" }
+export enum InternStatus { INTERNING = "ĐANG THỰC TẬP", PASSED = "ĐÃ PASS", FAIL = "TRƯỢT" }
 export interface Intern {
   id: string;
   fullName: string;

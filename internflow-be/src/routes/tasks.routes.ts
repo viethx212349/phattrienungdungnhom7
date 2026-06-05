@@ -80,12 +80,13 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const { title, description, intern_id, due_date } = req.body;
+    const { title, description, intern_id, due_date, attachments } = req.body;
     const task = await taskService.createTask({
       title,
       description,
       intern_id,
-      due_date
+      due_date,
+      attachments
     });
     res.status(201).json({ success: true, data: task });
   } catch (error) {

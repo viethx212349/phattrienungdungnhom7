@@ -99,7 +99,7 @@ const mapTaskDetail = (task: any): TaskDetail => ({
     id: attachment.id,
     file_name: attachment.file_name,
     file_url: attachment.file_url,
-    file_size: attachment.file_size,
+    file_size: attachment.file_size ? Number(attachment.file_size) : null,
     type: attachment.type,
     created_at: attachment.created_at
   }))
@@ -203,6 +203,12 @@ export const taskService = {
     description?: string;
     intern_id?: string;
     due_date?: unknown;
+    attachments?: {
+      file_name: string;
+      file_url: string;
+      file_size?: number;
+      type?: string;
+    }[];
   }) => {
     if (!data.title || data.title.trim().length === 0) {
       throw new Error('Title là bắt buộc');
@@ -210,6 +216,15 @@ export const taskService = {
 
     const now = new Date();
     const dueDate = parseDate(data.due_date);
+
+    const taskAttachments = data.attachments ? {
+      create: data.attachments.map(att => ({
+        file_name: att.file_name,
+        file_url: att.file_url,
+        file_size: att.file_size || null,
+        type: 'MENTOR_DOC'
+      }))
+    } : undefined;
 
     if (data.intern_id) {
       if (!dueDate) {
@@ -225,7 +240,8 @@ export const taskService = {
         status: 'IN_PROGRESS',
         intern_id: data.intern_id,
         due_date: dueDate,
-        assigned_at: now
+        assigned_at: now,
+        task_attachments: taskAttachments
       });
       return mapTaskSummary(task);
     }
@@ -233,7 +249,8 @@ export const taskService = {
     const task = await tasksRepository.create({
       title: data.title.trim(),
       description: data.description?.trim() ?? null,
-      status: 'TODO'
+      status: 'TODO',
+      task_attachments: taskAttachments
     });
     return mapTaskSummary(task);
   },

@@ -1,27 +1,53 @@
 import { useEffect, useState } from "react";
+import { LoaderCircle } from "lucide-react";
 import Modal from "./Modal";
 import type { Intern } from "../types/intern";
+import { api } from "../lib/api";
 
 interface InternEvaluationModalProps {
   isOpen: boolean;
   onClose: () => void;
   intern: Intern | null;
+  onEvaluate?: () => void;
 }
 
-const InternEvaluationModal = ({ isOpen, onClose, intern }: InternEvaluationModalProps) => {
+const InternEvaluationModal = ({ isOpen, onClose, intern, onEvaluate }: InternEvaluationModalProps) => {
   const [comment, setComment] = useState("");
   const [decision, setDecision] = useState<"PASS" | "FAIL">("PASS");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
       setComment("");
       setDecision("PASS");
+      setError(null);
     }
   }, [isOpen]);
 
   if (!intern) return null;
 
-  const initials = intern.fullName.split(" ").map((w) => w[0]).slice(-2).join("");
+  const handleEvaluate = async () => {
+    if (!comment.trim()) {
+      setError("Vui lòng nhập nhận xét chi tiết.");
+      return;
+    }
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await api.finalizeIntern(intern.id, {
+        status: decision === "PASS" ? "PASSED" : "FAILED",
+        final_feedback: comment,
+      });
+      if (onEvaluate) onEvaluate();
+    } catch (err: any) {
+      setError(err.message || "Có lỗi xảy ra");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const initials = intern.fullName.split(" ").map((w: string) => w[0]).slice(-2).join("");
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -59,6 +85,7 @@ const InternEvaluationModal = ({ isOpen, onClose, intern }: InternEvaluationModa
               placeholder="Nhập đánh giá chi tiết về quá trình làm việc, kỹ năng chuyên môn và thái độ của thực tập sinh..."
               className="w-full resize-none rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700 outline-none transition focus:border-gray-400 focus:bg-white"
             />
+            {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
           </div>
 
           {/* Decision */}
@@ -141,10 +168,18 @@ const InternEvaluationModal = ({ isOpen, onClose, intern }: InternEvaluationModa
           </button>
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
+            onClick={handleEvaluate}
+            disabled={isSubmitting}
+            className="flex min-w-[150px] items-center justify-center gap-2 rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-black disabled:opacity-60"
           >
-            Xác nhận đánh giá
+            {isSubmitting ? (
+              <>
+                <LoaderCircle size={16} className="animate-spin" />
+                Đang xử lý...
+              </>
+            ) : (
+              "Xác nhận đánh giá"
+            )}
           </button>
         </div>
       </div>

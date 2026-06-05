@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
@@ -8,13 +8,107 @@ import FloatingButton from "../components/FloatingButton";
 import CreateTaskModal from "../features/tasks/components/CreateTaskModal";
 import KanbanBoard from "../features/tasks/components/KanbanBoard";
 import type { Task } from "../types/task";
-import { mockTasks } from "../data/mockTasks";
+import { api } from "../lib/api";
 
 const Dashboard = () => {
   const [isOpenModal, setIsOpenModal] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "list">("overview");
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("light");
+
+  const fetchTasks = async () => {
+    try {
+      const res = await api.getTasks();
+      const mappedTasks: Task[] = res.map((t: any) => ({
+        id: t.id,
+        title: t.title,
+        description: t.description || "",
+        assigneeId: t.intern_id || undefined,
+        assigneeName: t.intern_name || undefined,
+        dueDate: t.due_date || undefined,
+        rawStatus: t.status,
+        displayStatus: t.display_status,
+        rejectedCount: t.rejected_count,
+        attachments: [], // We can fetch attachments later if needed
+      }));
+      setTasks(mappedTasks);
+    } catch (err) {
+      console.error("Failed to fetch tasks:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const handleStatusChange = async (taskId: string, newStatus: any) => {
+    try {
+      // Refresh tasks after status change to get truth from BE
+      // But actually, BE has strict state transitions. 
+      // For now, if someone drags to DONE, let's call approveTask
+      if (newStatus === "DONE") {
+        await api.approveTask(taskId);
+      } else {
+        // Fallback update
+        await api.updateTask(taskId, { status: newStatus } as any);
+      }
+      fetchTasks();
+    } catch (err) {
+      console.error("Status update failed:", err);
+      alert(err instanceof Error ? err.message : "Cập nhật trạng thái thất bại");
+      fetchTasks(); // Revert optimistic changes
+    }
+  };
+
+  const handleUpdateTask = async (taskId: string, updates: any) => {
+    try {
+      if (updates.assigneeId && !tasks.find(t => t.id === taskId)?.assigneeId) {
+         await api.assignTask(taskId, { intern_id: updates.assigneeId, due_date: updates.dueDate });
+      } else {
+         await api.updateTask(taskId, {
+           title: updates.title,
+           description: updates.description,
+           due_date: updates.dueDate,
+         });
+      }
+      fetchTasks();
+    } catch (err) {
+      console.error("Task update failed:", err);
+      alert(err instanceof Error ? err.message : "Cập nhật task thất bại");
+      fetchTasks();
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    try {
+      await api.deleteTask(taskId);
+      fetchTasks();
+    } catch (err) {
+      console.error("Task delete failed:", err);
+      alert(err instanceof Error ? err.message : "Xóa task thất bại");
+      fetchTasks();
+    }
+  };
+
+  const handleApproveTask = async (taskId: string, feedback: string) => {
+    try {
+      await api.approveTask(taskId, { mentor_feedback: feedback });
+      fetchTasks();
+    } catch (err) {
+      console.error("Approve task failed:", err);
+      alert(err instanceof Error ? err.message : "Duyệt task thất bại");
+    }
+  };
+
+  const handleRejectTask = async (taskId: string, feedback: string) => {
+    try {
+      await api.rejectTask(taskId, { mentor_feedback: feedback });
+      fetchTasks();
+    } catch (err) {
+      console.error("Reject task failed:", err);
+      alert(err instanceof Error ? err.message : "Yêu cầu làm lại thất bại");
+    }
+  };
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -50,76 +144,11 @@ const Dashboard = () => {
               </div>
               <KanbanBoard
                 tasks={tasks}
-                onStatusChange={(taskId, newStatus) => {
-                  setTasks((currentTasks) =>
-                    currentTasks.map((task) => {
-                      if (task.id !== taskId) return task;
-
-                      const isOverdue =
-                        task.dueDate && new Date(task.dueDate) < new Date();
-
-                      const newDisplayStatus: Task["displayStatus"] =
-                        newStatus === "TODO"
-                          ? task.assigneeId
-                            ? "IN_PROGRESS"
-                            : "UNASSIGNED"
-                          : newStatus === "IN_PROGRESS"
-                          ? isOverdue
-                            ? "OVERDUE"
-                            : "IN_PROGRESS"
-                          : newStatus === "IN_REVIEW"
-                          ? task.rejectedCount && task.rejectedCount > 0
-                            ? "NEEDS_REVISION"
-                            : "WAITING_REVIEW"
-                          : "COMPLETED";
-
-                      return {
-                        ...task,
-                        rawStatus: newStatus,
-                        displayStatus: newDisplayStatus,
-                      };
-                    })
-                  );
-                }}
-                onUpdateTask={(taskId, updates) => {
-                  setTasks((currentTasks) =>
-                    currentTasks.map((task) => {
-                      if (task.id !== taskId) return task;
-
-                            const dueDate = updates.dueDate ?? task.dueDate;
-                      const isOverdue = dueDate ? new Date(dueDate) < new Date() : false;
-
-                      // If assigning to someone, move to IN_PROGRESS
-                      const newRawStatus = updates.assigneeId && !task.assigneeId
-                        ? "IN_PROGRESS"
-                        : task.rawStatus;
-
-                      const newDisplayStatus: Task["displayStatus"] =
-                        updates.assigneeId && !task.assigneeId
-                          ? isOverdue
-                            ? "OVERDUE"
-                            : "IN_PROGRESS"
-                          : task.displayStatus;
-
-                      return {
-                        ...task,
-                        assigneeName: updates.assigneeName ?? task.assigneeName,
-                        assigneeId: updates.assigneeId ?? task.assigneeId,
-                        dueDate: updates.dueDate ?? task.dueDate,
-                        rawStatus: newRawStatus,
-                        displayStatus: newDisplayStatus,
-                        title: updates.title ?? task.title,
-                        description: updates.description ?? task.description,
-                        attachments: updates.attachments ?? task.attachments,
-                      };
-                    })
-                  );
-                }}
-                onDeleteTask={(taskId) => {
-                  setTasks((currentTasks) =>
-                    currentTasks.filter((task) => task.id !== taskId),
-                  );
-                }}
+                onStatusChange={handleStatusChange}
+                onUpdateTask={handleUpdateTask}
+                onDeleteTask={handleDeleteTask}
+                onApproveTask={handleApproveTask}
+                onRejectTask={handleRejectTask}
               />
             </section>
           ) : (
@@ -134,16 +163,12 @@ const Dashboard = () => {
         </div>
       </main>
 
-       <FloatingButton
-        onClick={() => setIsOpenModal(true)}
-      /> 
-       {/*Nút plus, hay dấu cộng  */}
-
+       <FloatingButton onClick={() => setIsOpenModal(true)} /> 
 
       <CreateTaskModal
         isOpen={isOpenModal}
         onClose={() => setIsOpenModal(false)}
-        onCreateTask={(task) => setTasks((current) => [task, ...current])}
+        onCreateTask={() => fetchTasks()}
       />
     </div>
   );

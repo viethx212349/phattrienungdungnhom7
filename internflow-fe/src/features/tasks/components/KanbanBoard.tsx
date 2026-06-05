@@ -7,6 +7,7 @@ import {
 import { CalendarDays } from "lucide-react";
 import Modal from "../../../components/Modal";
 import EditTaskModal from "./EditTaskModal";
+import TaskReviewModal from "./TaskReviewModal";
 import type { Task, RawTaskStatus } from "../../../types/task";
 import { useState, type DragEvent } from "react";
 
@@ -25,9 +26,11 @@ interface KanbanBoardProps {
     },
   ) => void;
   onDeleteTask?: (taskId: string) => void;
+  onApproveTask?: (taskId: string, feedback: string) => Promise<void>;
+  onRejectTask?: (taskId: string, feedback: string) => Promise<void>;
 }
 
-const KanbanBoard = ({ tasks, onStatusChange, onUpdateTask, onDeleteTask }: KanbanBoardProps) => {
+const KanbanBoard = ({ tasks, onStatusChange, onUpdateTask, onDeleteTask, onApproveTask, onRejectTask }: KanbanBoardProps) => {
   const {
     selectedTask,
     setSelectedTask,
@@ -194,14 +197,28 @@ const KanbanBoard = ({ tasks, onStatusChange, onUpdateTask, onDeleteTask }: Kanb
       </div>
 
       <Modal isOpen={Boolean(selectedTask)} onClose={handleCloseModal}>
-        {selectedTask && (
+        {selectedTask && selectedTask.rawStatus === "IN_REVIEW" ? (
+          <TaskReviewModal
+            isOpen={Boolean(selectedTask)}
+            onClose={handleCloseModal}
+            task={selectedTask}
+            onApprove={async (id, fb) => {
+              if (onApproveTask) await onApproveTask(id, fb);
+              handleCloseModal();
+            }}
+            onReject={async (id, fb) => {
+              if (onRejectTask) await onRejectTask(id, fb);
+              handleCloseModal();
+            }}
+          />
+        ) : selectedTask ? (
           <EditTaskModal
             task={selectedTask}
             onCancel={handleCloseModal}
             onDelete={handleDelete}
             onSave={handleSave}
           />
-        )}
+        ) : null}
       </Modal>
     </div>
   );

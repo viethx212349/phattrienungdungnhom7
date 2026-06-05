@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { CalendarDays, FileText, Image, Paperclip, Trash2 } from "lucide-react";
-import { mockInterns } from "../../../data/mockInterns";
 import type { Task, RawTaskStatus } from "../../../types/task";
+import { api } from "../../../lib/api";
 
 interface EditTaskModalProps {
   task: Task;
@@ -41,9 +41,15 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
     attachments: task.attachments ? [...task.attachments] : [] as string[],
   });
   const [error, setError] = useState("");
+  const [interns, setInterns] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    api.getInterns("ACTIVE").then(setInterns).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    // Initial sync
     setFormState({
       title: task.title,
       description: task.description ?? "",
@@ -53,15 +59,25 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
       attachments: task.attachments ? [...task.attachments] : [],
     });
     setError("");
+
+    // Fetch full details for attachments
+    api.getTaskById(task.id)
+      .then((fullTask) => {
+        setFormState((prev) => ({
+          ...prev,
+          attachments: fullTask.attachments ? fullTask.attachments.map((a: any) => a.file_name) : [],
+        }));
+      })
+      .catch(console.error);
   }, [task]);
 
   const handleAssigneeChange = (event: ChangeEvent<HTMLSelectElement>) => {
     const selectedId = event.target.value;
-    const selectedIntern = mockInterns.find((intern) => intern.id === selectedId);
+    const selectedIntern = interns.find((intern) => intern.id === selectedId);
     setFormState((current) => ({
       ...current,
       assigneeId: selectedId,
-      assigneeName: selectedIntern?.fullName || "",
+      assigneeName: selectedIntern?.full_name || "",
     }));
   };
 
@@ -100,9 +116,9 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
     });
   };
 
-  const selectedInternObj = mockInterns.find((i) => i.id === formState.assigneeId);
+  const selectedInternObj = interns.find((i) => i.id === formState.assigneeId);
   const initials = selectedInternObj
-    ? selectedInternObj.fullName.split(" ").map((w) => w[0]).slice(-2).join("")
+    ? selectedInternObj.full_name.split(" ").map((w: string) => w[0]).slice(-2).join("")
     : null;
 
   return (
@@ -156,9 +172,9 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
                 }`}
               >
                 <option value="">Chọn thực tập sinh...</option>
-                {mockInterns.map((intern) => (
+                {interns.map((intern) => (
                   <option key={intern.id} value={intern.id}>
-                    {intern.fullName}
+                    {intern.full_name}
                   </option>
                 ))}
               </select>

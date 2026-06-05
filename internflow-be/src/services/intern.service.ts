@@ -3,7 +3,7 @@ import { task_status } from '@prisma/client';
 
 
 
-const computeTaskDisplayStatus = (status: task_status, due_date: Date | null): string => {
+const computeTaskDisplayStatus = (status: task_status, due_date: Date | null, rejected_count: number): string => {
   const now = new Date();
   const isOverdue = due_date !== null && due_date < now && status !== 'DONE';
 
@@ -20,7 +20,7 @@ const computeTaskDisplayStatus = (status: task_status, due_date: Date | null): s
   }
 
   if (status === 'IN_PROGRESS') {
-    return 'Đang làm';
+    return rejected_count > 0 ? 'Cần sửa' : 'Đang làm';
   }
 
   return 'Đang làm';
@@ -65,7 +65,7 @@ export const internService = {
       name: task.title,
       deadline: task.due_date,
       raw_status: task.status,
-      display_status: computeTaskDisplayStatus(task.status, task.due_date),
+      display_status: computeTaskDisplayStatus(task.status, task.due_date, task.rejected_count),
       rejected_count: task.rejected_count,
       latest_feedback: task.mentor_feedback ?? null,
       submitted_at: task.submitted_at,

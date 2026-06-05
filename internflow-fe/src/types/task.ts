@@ -23,4 +23,6 @@ export interface Task {
   displayStatus: DisplayTaskStatus;
   rejectedCount?: number;
   attachments?: string[];
+  submittedAt?: string;
+  submissionLink?: string;
 }
