@@ -22,7 +22,7 @@ export interface Task {
   rawStatus: RawTaskStatus;
   displayStatus: DisplayTaskStatus;
   rejectedCount?: number;
-  attachments?: string[];
+  attachments?: { file_name: string; file_url?: string }[];
   submittedAt?: string;
   submissionLink?: string;
 }

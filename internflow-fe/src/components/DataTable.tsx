@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download, GraduationCap, Mail, Phone } from "lucide-react";
 import Badge from "./Badge";
 import InternEvaluationModal from "./InternEvaluationModal";
@@ -6,7 +6,7 @@ import Modal from "./Modal";
 import SkeletonRow from "./SkeletonRow";
 import { InternStatus, type Intern } from "../types/intern";
 import { useInterns } from "../hooks/useInterns";
-import { getInternDetails } from "../data/internDetails";
+import { api } from "../lib/api";
 
 interface DataTableProps {
   page: number;
@@ -16,16 +16,56 @@ interface DataTableProps {
 const DataTable = ({ page, limit }: DataTableProps) => {
   const { data, isLoading, refetch } = useInterns({ page, limit });
   const [selectedIntern, setSelectedIntern] = useState<Intern | null>(null);
+  const [internDetails, setInternDetails] = useState<any>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
 
+  useEffect(() => {
+    if (selectedIntern) {
+      api.getInternById(selectedIntern.id)
+        .then(data => setInternDetails(data))
+        .catch(console.error);
+    } else {
+      setInternDetails(null);
+    }
+  }, [selectedIntern]);
+
   const openInternModal = (intern: Intern) => setSelectedIntern(intern);
-  const closeInternModal = () => setSelectedIntern(null);
+  const closeInternModal = () => {
+    setSelectedIntern(null);
+    setInternDetails(null);
+  };
   const openReviewModal = () => setIsReviewOpen(true);
   const closeReviewModal = () => setIsReviewOpen(false);
 
-  const internDetailsData = selectedIntern ? getInternDetails(selectedIntern.id) : null;
-  const taskStats = internDetailsData?.taskStats || [];
-  const workHistory = internDetailsData?.workHistory || [];
+  const taskStats = [
+    { label: "TỔNG TASK", value: internDetails?.total_tasks ?? 0 },
+    { label: "HOÀN THÀNH", value: internDetails?.completed_count ?? 0 },
+    { label: "TRỄ HẠN", value: internDetails?.overdue_count ?? 0 },
+  ];
+  const workHistory = internDetails?.task_history || [];
+
+  const getStatusLabel = (status: string) => {
+    if (status === 'ACTIVE') return 'Đang thực tập';
+    if (status === 'PASSED') return 'Đã đạt';
+    if (status === 'FAILED') return 'Không đạt';
+    return status;
+  };
+
+  const getStatusVariant = (status: string) => {
+    if (status === 'ACTIVE') return 'success';
+    if (status === 'PASSED') return 'default';
+    if (status === 'FAILED') return 'error';
+    return 'default';
+  };
+
+  const badgeStyles: Record<string, string> = {
+    "Hoàn thành": "bg-green-100 text-green-700",
+    "Trễ hạn": "bg-red-100 text-red-600",
+    "Chờ duyệt": "bg-amber-100 text-amber-700",
+    "Cần sửa": "bg-orange-100 text-orange-700",
+    "Đang làm": "bg-blue-100 text-blue-700",
+    "Chưa giao": "bg-gray-100 text-gray-600",
+  };
 
   return (
     <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -106,17 +146,17 @@ const DataTable = ({ page, limit }: DataTableProps) => {
               {/* Profile */}
               <div className="flex items-center gap-5">
                 <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-slate-900 text-xl font-black text-white">
-                  {selectedIntern.fullName.split(" ").map((w) => w[0]).slice(-2).join("")}
+                  {internDetails?.full_name?.split(" ").map((w: string) => w[0]).slice(-2).join("") || selectedIntern.fullName.split(" ").map((w: string) => w[0]).slice(-2).join("")}
                 </div>
                 <div>
                   <div className="flex items-center gap-3">
-                    <h2 className="text-xl font-bold text-gray-900">{selectedIntern.fullName}</h2>
+                    <h2 className="text-xl font-bold text-gray-900">{internDetails?.full_name || selectedIntern.fullName}</h2>
                     <Badge
-                      label={selectedIntern.status}
-                      variant={selectedIntern.status === InternStatus.INTERNING ? "success" : "default"}
+                      label={getStatusLabel(internDetails?.status || 'ACTIVE')}
+                      variant={getStatusVariant(internDetails?.status || 'ACTIVE')}
                     />
                   </div>
-                  <p className="mt-0.5 text-sm text-gray-500">{selectedIntern.position}</p>
+                  <p className="mt-0.5 text-sm text-gray-500">{internDetails?.position || selectedIntern.position}</p>
                 </div>
               </div>
 
@@ -124,15 +164,15 @@ const DataTable = ({ page, limit }: DataTableProps) => {
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Mail size={14} className="text-gray-400" />
-                  <span>{selectedIntern.email}</span>
+                  <span>{internDetails?.email || selectedIntern.email}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Phone size={14} className="text-gray-400" />
-                  <span>{selectedIntern.phone}</span>
+                  <span>{internDetails?.phone || selectedIntern.phone}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <GraduationCap size={14} className="text-gray-400" />
-                  <span>HUST</span>
+                  <span>{internDetails?.school || "Chưa cập nhật"}</span>
                 </div>
               </div>
 
@@ -149,7 +189,7 @@ const DataTable = ({ page, limit }: DataTableProps) => {
                       </p>
                       <p
                         className={`mt-2 text-2xl font-black ${
-                          idx === taskStats.length - 1 && stat.value !== "0"
+                          stat.label === "TRỄ HẠN" && stat.value > 0
                             ? "text-red-500"
                             : "text-gray-900"
                         }`}
@@ -167,24 +207,24 @@ const DataTable = ({ page, limit }: DataTableProps) => {
                   <p className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
                     Lịch sử công việc
                   </p>
-                  <div className="space-y-2">
-                    {workHistory.map((item) => (
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                    {workHistory.map((item: any, idx: number) => (
                       <div
-                        key={item.title}
+                        key={idx}
                         className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
                       >
                         <div>
-                          <p className="text-sm font-semibold text-gray-800">{item.title}</p>
-                          <p className="mt-0.5 text-xs text-gray-400">{item.date}</p>
+                          <p className="text-sm font-semibold text-gray-800">{item.name}</p>
+                          <p className="mt-0.5 text-xs text-gray-400">
+                            {item.deadline ? new Date(item.deadline).toLocaleDateString('vi-VN') : 'Không có deadline'}
+                          </p>
                         </div>
                         <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold ${
-                            item.status === "HOÀN THÀNH"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-600"
+                          className={`rounded-full px-3 py-1 text-[10px] font-bold ${
+                            badgeStyles[item.display_status] || "bg-gray-100 text-gray-600"
                           }`}
                         >
-                          {item.status}
+                          {item.display_status.toUpperCase()}
                         </span>
                       </div>
                     ))}
@@ -202,11 +242,21 @@ const DataTable = ({ page, limit }: DataTableProps) => {
                 Đóng
               </button>
               <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50">
+                <button
+                  disabled={!internDetails?.cv_link}
+                  className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold transition ${
+                    internDetails?.cv_link 
+                      ? "border-gray-300 text-gray-700 hover:bg-gray-50" 
+                      : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
+                  }`}
+                  onClick={() => {
+                    if (internDetails?.cv_link) window.open(internDetails.cv_link, "_blank");
+                  }}
+                >
                   <Download size={15} />
                   Tải CV
                 </button>
-                {selectedIntern?.status === InternStatus.INTERNING && (
+                {internDetails?.status === 'ACTIVE' && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

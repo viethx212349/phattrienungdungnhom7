@@ -115,7 +115,24 @@ export const tasksRepository = {
     submission_summary?: string | null;
     submitted_at?: Date | null;
     closed_at?: Date | null;
+    attachments?: any[];
   }) => {
+    if (data.attachments !== undefined) {
+      await prisma.task_attachments.deleteMany({
+        where: { task_id: id, type: 'MENTOR_DOC' }
+      });
+      if (data.attachments.length > 0) {
+        await prisma.task_attachments.createMany({
+          data: data.attachments.map((file: any) => ({
+            task_id: id,
+            file_name: file.file_name,
+            file_url: file.file_url,
+            type: 'MENTOR_DOC'
+          }))
+        });
+      }
+    }
+
     return await prisma.tasks.update({
       where: { id },
       data: {

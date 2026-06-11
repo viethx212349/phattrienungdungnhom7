@@ -11,7 +11,7 @@ interface EditTaskModalProps {
     assigneeId?: string;
     assigneeName?: string;
     dueDate?: string;
-    attachments?: string[];
+    attachments?: { file_name: string; file_url?: string }[];
   }) => void;
   onCancel: () => void;
   onDelete: () => void;
@@ -38,14 +38,14 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
     assigneeId: task.assigneeId || "",
     assigneeName: task.assigneeName || "",
     dueDate: task.dueDate ? task.dueDate.split("T")[0] : "",
-    attachments: task.attachments ? [...task.attachments] : [] as string[],
+    attachments: task.attachments ? [...task.attachments] : [] as { file_name: string; file_url?: string }[],
   });
   const [error, setError] = useState("");
   const [interns, setInterns] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    api.getInterns("ACTIVE").then(setInterns).catch(console.error);
+    api.getInterns().then(setInterns).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -65,7 +65,7 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
       .then((fullTask) => {
         setFormState((prev) => ({
           ...prev,
-          attachments: fullTask.attachments ? fullTask.attachments.map((a: any) => a.file_name) : [],
+          attachments: fullTask.attachments ? fullTask.attachments : [],
         }));
       })
       .catch(console.error);
@@ -88,7 +88,7 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
       ...current,
       attachments: [
         ...current.attachments,
-        ...selectedFiles.map((file) => file.name),
+        ...selectedFiles.map((file) => ({ file_name: file.name, file })),
       ],
     }));
   };
@@ -96,30 +96,52 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
   const handleRemoveAttachment = (name: string) => {
     setFormState((current) => ({
       ...current,
-      attachments: current.attachments.filter((a) => a !== name),
+      attachments: current.attachments.filter((a) => a.file_name !== name),
     }));
   };
 
-  const handleSave = () => {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleSave = async () => {
     if (!formState.title.trim()) {
       setError("Tiêu đề không được để trống");
       return;
     }
     setError("");
-    onSave({
-      title: formState.title.trim(),
-      description: formState.description,
-      assigneeId: formState.assigneeId || undefined,
-      assigneeName: formState.assigneeName || undefined,
-      dueDate: formState.dueDate || undefined,
-      attachments: formState.attachments,
-    });
+    setIsUploading(true);
+
+    try {
+      const finalAttachments = [];
+      for (const att of formState.attachments) {
+        if ((att as any).file) {
+          const res = await api.uploadFile((att as any).file);
+          finalAttachments.push({ file_name: res.name, file_url: res.url });
+        } else {
+          finalAttachments.push({ file_name: att.file_name, file_url: att.file_url });
+        }
+      }
+
+      onSave({
+        title: formState.title.trim(),
+        description: formState.description,
+        assigneeId: formState.assigneeId || undefined,
+        assigneeName: formState.assigneeName || undefined,
+        dueDate: formState.dueDate || undefined,
+        attachments: finalAttachments,
+      });
+    } catch (err: any) {
+      setError(err.message || "Lỗi khi upload file");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const selectedInternObj = interns.find((i) => i.id === formState.assigneeId);
   const initials = selectedInternObj
     ? selectedInternObj.full_name.split(" ").map((w: string) => w[0]).slice(-2).join("")
     : null;
+
+  const isReadOnly = selectedInternObj ? selectedInternObj.status !== 'ACTIVE' : false;
 
   return (
     <div className="flex flex-col">
@@ -133,6 +155,13 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
         </span>
       </div>
 
+      {isReadOnly && (
+        <div className="bg-amber-50 px-7 py-3 border-b border-amber-100 flex items-center gap-2 text-amber-800 text-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <strong>Chỉ xem:</strong> Thực tập sinh này đã kết thúc thực tập (Trạng thái: {selectedInternObj?.status}). Không thể chỉnh sửa task.
+        </div>
+      )}
+
       {/* ── Body ── */}
       <div className="px-7 py-6 space-y-5">
         {/* Title */}
@@ -142,11 +171,12 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
           </label>
           <input
             type="text"
+            disabled={isReadOnly}
             value={formState.title}
             onChange={(e) => setFormState((c) => ({ ...c, title: e.target.value }))}
             className={`w-full rounded-lg border px-4 py-3 text-sm text-gray-900 outline-none transition focus:border-gray-400 ${
               error ? "border-red-400" : "border-gray-200"
-            }`}
+            } ${isReadOnly ? "bg-gray-50 cursor-not-allowed text-gray-500" : "bg-white"}`}
           />
           {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
         </div>
@@ -165,18 +195,26 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
                 </div>
               ) : null}
               <select
+                disabled={isReadOnly}
                 value={formState.assigneeId}
                 onChange={handleAssigneeChange}
-                className={`w-full appearance-none bg-transparent py-3 pr-9 text-sm text-gray-800 outline-none ${
+                className={`w-full appearance-none bg-transparent py-3 pr-9 text-sm outline-none ${
                   initials ? "pl-2" : "pl-4"
-                }`}
+                } ${isReadOnly ? "cursor-not-allowed text-gray-500" : "text-gray-800"}`}
               >
                 <option value="">Chọn thực tập sinh...</option>
-                {interns.map((intern) => (
-                  <option key={intern.id} value={intern.id}>
-                    {intern.full_name}
-                  </option>
-                ))}
+                {interns.map((intern) => {
+                  const isSelectable = intern.status === 'ACTIVE' || intern.id === task.assigneeId;
+                  return (
+                    <option 
+                      key={intern.id} 
+                      value={intern.id}
+                      disabled={!isSelectable}
+                    >
+                      {intern.full_name} {intern.status !== 'ACTIVE' ? `(${intern.status})` : ''}
+                    </option>
+                  );
+                })}
               </select>
               <div className="pointer-events-none absolute right-3 text-gray-400">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -195,10 +233,13 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
               <CalendarDays size={15} className="ml-3 flex-shrink-0 text-gray-400" />
               <input
                 type="date"
+                disabled={isReadOnly}
                 value={formState.dueDate}
                 onChange={(e) => setFormState((c) => ({ ...c, dueDate: e.target.value }))}
                 min={new Date().toISOString().split("T")[0]}
-                className="w-full bg-transparent py-3 pl-2 pr-4 text-sm text-gray-800 outline-none"
+                className={`w-full bg-transparent py-3 pl-2 pr-4 text-sm outline-none ${
+                  isReadOnly ? "cursor-not-allowed text-gray-500" : "text-gray-800"
+                }`}
               />
             </div>
           </div>
@@ -211,9 +252,12 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
           </label>
           <textarea
             rows={4}
+            disabled={isReadOnly}
             value={formState.description}
             onChange={(e) => setFormState((c) => ({ ...c, description: e.target.value }))}
-            className="w-full resize-y rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-800 outline-none transition focus:border-gray-400"
+            className={`w-full resize-y rounded-lg border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-gray-400 ${
+              isReadOnly ? "bg-gray-50 cursor-not-allowed text-gray-500" : "text-gray-800 bg-white"
+            }`}
           />
         </div>
 
@@ -228,14 +272,14 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
 
           {formState.attachments.length > 0 && (
             <div className="mb-3 space-y-2 rounded-lg border border-gray-200 p-2">
-              {formState.attachments.map((attachment) => {
-                const ext = attachment.split(".").pop()?.toLowerCase() || "";
+              {formState.attachments.map((attachment, idx) => {
+                const ext = attachment.file_name.split(".").pop()?.toLowerCase() || "";
                 const isImage = ["png", "jpg", "jpeg", "gif", "webp"].includes(ext);
                 const isPdf = ext === "pdf";
 
                 return (
                   <div
-                    key={attachment}
+                    key={`${attachment.file_name}-${idx}`}
                     className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2.5"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -243,45 +287,59 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
                         {isImage ? <Image size={16} /> : isPdf ? <FileText size={16} /> : <Paperclip size={16} />}
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-gray-800">{attachment}</p>
+                        {attachment.file_url ? (
+                           <a href={`http://localhost:4000${attachment.file_url}`} target="_blank" rel="noreferrer" className="truncate text-sm font-medium text-blue-600 hover:underline block">{attachment.file_name}</a>
+                        ) : (
+                           <p className="truncate text-sm font-medium text-gray-800">{attachment.file_name}</p>
+                        )}
                         <p className="text-xs text-gray-400">{isImage ? "Image file" : `${ext.toUpperCase() || "FILE"}`}</p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveAttachment(attachment)}
-                      className="ml-3 flex-shrink-0 rounded-md p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600"
-                    >
-                      <Trash2 size={15} />
-                    </button>
+                    {!isReadOnly && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(attachment.file_name)}
+                        className="ml-3 flex-shrink-0 rounded-md p-1.5 text-red-400 transition hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 py-3 text-sm text-gray-400 transition hover:border-gray-400 hover:text-gray-600"
-          >
-            <Paperclip size={15} />
-            Thêm tệp đính kèm
-          </button>
-          <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileChange} />
+          {!isReadOnly && (
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-gray-300 py-3 text-sm text-gray-400 transition hover:border-gray-400 hover:text-gray-600"
+              >
+                <Paperclip size={15} />
+                Thêm tệp đính kèm
+              </button>
+              <input ref={fileInputRef} type="file" multiple hidden onChange={handleFileChange} />
+            </>
+          )}
         </div>
       </div>
 
       {/* ── Footer ── */}
       <div className="flex items-center justify-between px-7 py-4 border-t border-gray-100">
-        <button
-          type="button"
-          onClick={onDelete}
-          className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-        >
-          <Trash2 size={15} />
-          Xóa task
-        </button>
+        {!isReadOnly ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex items-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+          >
+            <Trash2 size={15} />
+            Xóa task
+          </button>
+        ) : (
+          <div></div>
+        )}
 
         <div className="flex items-center gap-3">
           <button
@@ -289,15 +347,20 @@ const EditTaskModal = ({ task, onSave, onCancel, onDelete }: EditTaskModalProps)
             onClick={onCancel}
             className="px-4 py-2.5 text-sm font-medium text-gray-500 transition hover:text-gray-800"
           >
-            Hủy
+            {isReadOnly ? "Đóng" : "Hủy"}
           </button>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-black"
-          >
-            Lưu thay đổi
-          </button>
+          {!isReadOnly && (
+            <button
+              type="button"
+              disabled={isUploading}
+              onClick={handleSave}
+              className={`rounded-lg px-5 py-2.5 text-sm font-semibold text-white transition ${
+                isUploading ? "bg-gray-400 cursor-not-allowed" : "bg-gray-900 hover:bg-black"
+              }`}
+            >
+              {isUploading ? "Đang lưu..." : "Lưu thay đổi"}
+            </button>
+          )}
         </div>
       </div>
     </div>

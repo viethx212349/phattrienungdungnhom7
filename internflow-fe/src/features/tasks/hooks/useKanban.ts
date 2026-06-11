@@ -1,4 +1,4 @@
-import { useCallback, useState, type DragEvent } from "react";
+import { useState } from "react";
 import type { RawTaskStatus, Task, DisplayTaskStatus } from "../../../types/task";
 
 export const columns: { rawStatus: RawTaskStatus; title: string }[] = [
@@ -62,38 +62,11 @@ export const formatDueDate = (dueDate?: string) => {
   });
 };
 
-export const useKanban = (
-  onStatusChange: (taskId: string, newStatus: RawTaskStatus) => void
-) => {
+export const useKanban = () => {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [dragOverColumn, setDragOverColumn] = useState<RawTaskStatus | null>(null);
-
-  const handleDragStart = useCallback(
-    (event: DragEvent<HTMLButtonElement>, taskId: string) => {
-      event.dataTransfer.setData("text/plain", taskId);
-      event.dataTransfer.effectAllowed = "move";
-    },
-    []
-  );
-
-  const handleDrop = useCallback(
-    (event: DragEvent<HTMLDivElement>, status: RawTaskStatus) => {
-      event.preventDefault();
-      const taskId = event.dataTransfer.getData("text/plain");
-      if (taskId) {
-        onStatusChange(taskId, status);
-      }
-      setDragOverColumn(null);
-    },
-    [onStatusChange]
-  );
 
   return {
     selectedTask,
     setSelectedTask,
-    dragOverColumn,
-    setDragOverColumn,
-    handleDragStart,
-    handleDrop,
   };
 };

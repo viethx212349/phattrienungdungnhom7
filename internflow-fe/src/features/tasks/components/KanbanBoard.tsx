@@ -9,11 +9,10 @@ import Modal from "../../../components/Modal";
 import EditTaskModal from "./EditTaskModal";
 import TaskReviewModal from "./TaskReviewModal";
 import type { Task, RawTaskStatus } from "../../../types/task";
-import { useState, type DragEvent } from "react";
+import { useState } from "react";
 
 interface KanbanBoardProps {
   tasks: Task[];
-  onStatusChange: (taskId: string, newStatus: RawTaskStatus) => void;
   onUpdateTask?: (
     taskId: string,
     updates: {
@@ -30,51 +29,14 @@ interface KanbanBoardProps {
   onRejectTask?: (taskId: string, feedback: string) => Promise<void>;
 }
 
-const KanbanBoard = ({ tasks, onStatusChange, onUpdateTask, onDeleteTask, onApproveTask, onRejectTask }: KanbanBoardProps) => {
+const KanbanBoard = ({ tasks, onUpdateTask, onDeleteTask, onApproveTask, onRejectTask }: KanbanBoardProps) => {
   const {
     selectedTask,
     setSelectedTask,
-    dragOverColumn,
-    setDragOverColumn,
-    handleDragStart: internalHandleDragStart,
-  } = useKanban(onStatusChange);
-
-  const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
+  } = useKanban();
 
   const handleCloseModal = () => {
     setSelectedTask(null);
-  };
-
-  const canDropToColumn = (targetStatus: RawTaskStatus) => {
-    if (targetStatus === "TODO" && draggedTaskId) {
-      const draggedTask = tasks.find((task) => task.id === draggedTaskId);
-      return draggedTask?.rawStatus === "TODO";
-    }
-    return true;
-  };
-
-  const handleDragStart = (event: DragEvent<HTMLButtonElement>, taskId: string) => {
-    setDraggedTaskId(taskId);
-    internalHandleDragStart(event, taskId);
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>, status: RawTaskStatus) => {
-    event.preventDefault();
-    const taskId = event.dataTransfer.getData("text/plain");
-    const draggedTask = tasks.find((task) => task.id === taskId);
-
-    setDragOverColumn(null);
-    setDraggedTaskId(null);
-
-    if (!taskId || !draggedTask) {
-      return;
-    }
-
-    if (status === "TODO" && draggedTask.rawStatus !== "TODO") {
-      return;
-    }
-
-    onStatusChange(taskId, status);
   };
 
   const handleSave = (updates: {
@@ -104,21 +66,9 @@ const KanbanBoard = ({ tasks, onStatusChange, onUpdateTask, onDeleteTask, onAppr
         {columns.map((column) => (
           <div
             key={column.rawStatus}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => handleDrop(event, column.rawStatus)}
-            onDragEnter={() => {
-              if (canDropToColumn(column.rawStatus)) {
-                setDragOverColumn(column.rawStatus);
-              }
-            }}
-            onDragLeave={() => setDragOverColumn(null)}
-            className={`rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 ${
-              dragOverColumn === column.rawStatus
-                ? "border-blue-400 bg-blue-50"
-                : "border-slate-200"
-            }`}
+            className="rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 border-slate-200 flex flex-col max-h-[calc(100vh-180px)]"
           >
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex items-center justify-between flex-shrink-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
                   {column.title}
@@ -129,17 +79,11 @@ const KanbanBoard = ({ tasks, onStatusChange, onUpdateTask, onDeleteTask, onAppr
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar">
               {getColumnTasks(column.rawStatus, tasks).map((task) => (
                 <button
                   key={task.id}
                   type="button"
-                  draggable
-                  onDragStart={(event) => handleDragStart(event, task.id)}
-                  onDragEnd={() => {
-                    setDraggedTaskId(null);
-                    setDragOverColumn(null);
-                  }}
                   onClick={() => setSelectedTask(task)}
                   className="w-full rounded-xl border border-gray-200 bg-white p-4 text-left shadow-sm transition hover:border-gray-400 hover:shadow-md"
                 >

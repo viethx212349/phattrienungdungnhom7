@@ -111,12 +111,13 @@ router.patch('/:id/assign', async (req: Request, res: Response) => {
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { title, description, due_date, mentor_feedback } = req.body;
+    const { title, description, due_date, mentor_feedback, attachments } = req.body;
     const task = await taskService.updateTask(id, {
       title,
       description,
       due_date,
-      mentor_feedback
+      mentor_feedback,
+      attachments
     });
     res.json({ success: true, data: task });
   } catch (error) {

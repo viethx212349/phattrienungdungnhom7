@@ -47,12 +47,7 @@ export const api = {
 
   updateTask: (
     id: string,
-    data: {
-      title?: string;
-      description?: string;
-      due_date?: string;
-      mentor_feedback?: string;
-    }
+    data: { title?: string; description?: string; due_date?: string; mentor_feedback?: string; attachments?: any[] }
   ) =>
     request<any>(`/tasks/${id}`, {
       method: "PATCH",

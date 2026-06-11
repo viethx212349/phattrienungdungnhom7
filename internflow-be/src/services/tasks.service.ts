@@ -290,6 +290,7 @@ export const taskService = {
     description?: string;
     due_date?: unknown;
     mentor_feedback?: string;
+    attachments?: any[];
   }) => {
     const task = await tasksRepository.findById(id);
     if (!task) {
@@ -340,8 +341,15 @@ export const taskService = {
       }
     }
 
-    const updated = await tasksRepository.update(id, updateData);
-    return mapTaskSummary(updated);
+    const updatedTask = await tasksRepository.update(id, {
+      ...updateData,
+      attachments: data.attachments
+    });
+
+    return {
+      ...updatedTask,
+      display_status: computeTaskDisplayStatus(updatedTask.status, updatedTask.due_date, updatedTask.rejected_count)
+    };
   },
 
   deleteTask: async (id: string) => {

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
@@ -12,7 +13,9 @@ import { api } from "../lib/api";
 
 const Dashboard = () => {
   const [isOpenModal, setIsOpenModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "list">("overview");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const activeTab = location.pathname.includes("/interns") ? "list" : "overview";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -41,24 +44,7 @@ const Dashboard = () => {
     fetchTasks();
   }, []);
 
-  const handleStatusChange = async (taskId: string, newStatus: any) => {
-    try {
-      // Refresh tasks after status change to get truth from BE
-      // But actually, BE has strict state transitions. 
-      // For now, if someone drags to DONE, let's call approveTask
-      if (newStatus === "DONE") {
-        await api.approveTask(taskId);
-      } else {
-        // Fallback update
-        await api.updateTask(taskId, { status: newStatus } as any);
-      }
-      fetchTasks();
-    } catch (err) {
-      console.error("Status update failed:", err);
-      alert(err instanceof Error ? err.message : "Cập nhật trạng thái thất bại");
-      fetchTasks(); // Revert optimistic changes
-    }
-  };
+  // handleStatusChange has been removed.
 
   const handleUpdateTask = async (taskId: string, updates: any) => {
     try {
@@ -69,6 +55,7 @@ const Dashboard = () => {
            title: updates.title,
            description: updates.description,
            due_date: updates.dueDate,
+           attachments: updates.attachments,
          });
       }
       fetchTasks();
@@ -116,7 +103,7 @@ const Dashboard = () => {
     }`}>
       <Sidebar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => navigate(tab === "overview" ? "/dashboard" : "/interns")}
         theme={theme}
         onThemeToggle={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
@@ -144,7 +131,6 @@ const Dashboard = () => {
               </div>
               <KanbanBoard
                 tasks={tasks}
-                onStatusChange={handleStatusChange}
                 onUpdateTask={handleUpdateTask}
                 onDeleteTask={handleDeleteTask}
                 onApproveTask={handleApproveTask}
