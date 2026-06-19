@@ -22,3 +22,6 @@ Thumbs.db
 *.log
 
 /src/generated/prisma
+
+# Test coverage
+coverage/
