@@ -1,6 +1,7 @@
 import { task_status } from '@prisma/client';
 import { tasksRepository } from '../repositories/tasks.repository';
 import { internRepository } from '../repositories/intern.repository';
+import { supabase, TASK_ATTACHMENTS_BUCKET } from '../lib/supabase';
 
 type TaskDisplayStatus =
   | 'UNASSIGNED'
@@ -99,7 +100,7 @@ const mapTaskDetail = (task: any): TaskDetail => ({
     id: attachment.id,
     file_name: attachment.file_name,
     file_url: attachment.file_url,
-    file_size: attachment.file_size,
+    file_size: attachment.file_size !== null ? Number(attachment.file_size) : null,
     type: attachment.type,
     created_at: attachment.created_at
   }))
@@ -195,6 +196,47 @@ export const taskService = {
       submitted_at: null,
       closed_at: null
     });
+    return mapTaskDetail(updated);
+  },
+
+  uploadAttachments: async (
+    taskId: string,
+    files: Array<{ originalname: string; buffer: Buffer; size: number; mimetype: string }>
+  ) => {
+    const task = await tasksRepository.findById(taskId);
+    if (!task) {
+      throw new Error('Không tìm thấy task');
+    }
+
+    const uploaded: Array<{ file_name: string; file_url: string; file_size: number; type: 'MENTOR_DOC' }> = [];
+
+    for (const file of files) {
+      const safeName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const path = `tasks/${taskId}/${Date.now()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from(TASK_ATTACHMENTS_BUCKET)
+        .upload(path, file.buffer, { contentType: file.mimetype });
+
+      if (uploadError) {
+        throw new Error(`Upload file thất bại: ${uploadError.message}`);
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from(TASK_ATTACHMENTS_BUCKET)
+        .getPublicUrl(path);
+
+      uploaded.push({
+        file_name: file.originalname,
+        file_url: publicUrlData.publicUrl,
+        file_size: file.size,
+        type: 'MENTOR_DOC'
+      });
+    }
+
+    await tasksRepository.addAttachments(taskId, uploaded);
+
+    const updated = await tasksRepository.findById(taskId);
     return mapTaskDetail(updated);
   },
 

@@ -33,4 +33,26 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Upload file (FormData) bằng fetch thuần — tránh việc apiClient ép Content-Type: application/json
+// đè lên multipart/form-data boundary mà axios cần tự sinh.
+export const uploadFiles = async (endpoint: string, formData: FormData) => {
+  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
+  const token = localStorage.getItem('token');
+
+  const response = await fetch(`${baseURL}${endpoint}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    body: formData,
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const message = data?.message || `Upload thất bại (${response.status})`;
+    throw new Error(message);
+  }
+
+  return data;
+};
+
 export default apiClient;

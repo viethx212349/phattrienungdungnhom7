@@ -4,7 +4,21 @@
 
 export type InternStatus = 'ACTIVE' | 'PASSED' | 'FAILED';
 
+export enum InternStatusLabel {
+  ACTIVE = 'ĐANG THỰC TẬP',
+  PASSED = 'ĐÃ PASS',
+  FAILED = 'THẤT BẠI',
+}
+
 export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'IN_REVIEW' | 'DONE';
+
+export type TaskDisplayStatus =
+  | 'UNASSIGNED'
+  | 'IN_PROGRESS'
+  | 'NEEDS_REVISION'
+  | 'WAITING_REVIEW'
+  | 'COMPLETED'
+  | 'OVERDUE';
 
 export type NotificationType = 'NEW_TASK' | 'REMINDER' | 'REJECTED';
 
@@ -33,6 +47,7 @@ export interface Task {
   title: string;
   description: string | null;
   status: TaskStatus;
+  display_status: TaskDisplayStatus;
   rejected_count: number;
   due_date: string | null;
   assigned_at: string | null;
@@ -43,6 +58,7 @@ export interface Task {
   submission_summary: string | null;
   created_at: string;
   updated_at: string;
+  intern_name?: string | null;
   // Relations (optional, chỉ có khi BE include)
   intern?: Intern;
   notifications?: Notification[];

@@ -160,6 +160,26 @@ export const tasksRepository = {
     return await prisma.tasks.delete({
       where: { id }
     });
+  },
+
+  addAttachments: async (
+    taskId: string,
+    attachments: Array<{
+      file_name: string;
+      file_url: string;
+      file_size: number;
+      type: 'MENTOR_DOC' | 'INTERN_SUBMIT';
+    }>
+  ) => {
+    return await prisma.task_attachments.createMany({
+      data: attachments.map((attachment) => ({
+        task_id: taskId,
+        file_name: attachment.file_name,
+        file_url: attachment.file_url,
+        file_size: attachment.file_size,
+        type: attachment.type
+      }))
+    });
   }
 };
 

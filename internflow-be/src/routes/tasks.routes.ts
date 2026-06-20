@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
+import multer from 'multer';
 import { taskService } from '../services/tasks.service';
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 router.get('/', async (req: Request, res: Response) => {
   try {
@@ -58,6 +60,22 @@ router.patch('/:id/reject', async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const { mentor_feedback } = req.body;
     const task = await taskService.rejectTask(id, { mentor_feedback });
+    res.json({ success: true, data: task });
+  } catch (error) {
+    const err = error as Error;
+    const statusCode = err.message.includes('Không tìm thấy') ? 404 : 400;
+    res.status(statusCode).json({ success: false, message: err.message });
+  }
+});
+
+router.post('/:id/attachments', upload.array('files', 10), async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const files = (req.files as Express.Multer.File[]) ?? [];
+    if (files.length === 0) {
+      return res.status(400).json({ success: false, message: 'Vui lòng chọn ít nhất 1 file' });
+    }
+    const task = await taskService.uploadAttachments(id, files);
     res.json({ success: true, data: task });
   } catch (error) {
     const err = error as Error;
