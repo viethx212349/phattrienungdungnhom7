@@ -42,7 +42,7 @@ InternFlow là một phần mềm Desktop (Internal HR System) được thiết 
 
 - Mở Terminal tại thư mục `internflow-be`
 - Chạy lệnh `npm install`
-- Chạy lệnh `npm run setup` (ấn Enter để tự động lấy link Database đã cấu hình sẵn).
+- Chạy lệnh `npm run setup` (Lưu ý: Lệnh này tự động copy link Database từ file `.env.example` sang `.env`. Nhóm đã chủ ý để sẵn password DB thực tế vào file `.env.example` nhằm mục đích giúp Thầy/Cô dễ dàng chạy thử và chấm đồ án mà không phải mất thời gian tự setup môi trường).
 - Chạy lệnh `npm run start` (hoặc `npm run dev`). Đảm bảo Server báo chạy thành công ở cổng 4000.
 
 **Bước 2: Mở Frontend Desktop App**

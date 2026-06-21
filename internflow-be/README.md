@@ -19,7 +19,9 @@ npm install
 ```bash
 npm run setup
 ```
-Script sẽ tự động tạo file `.env` từ `.env.example` và generate Prisma Client. Mật khẩu kết nối Database đã được nhóm tích hợp sẵn trong file `.env.example`, bạn chỉ cần ấn Enter khi được hỏi.
+Script sẽ tự động copy file `.env.example` thành `.env` và generate Prisma Client. 
+
+*(Ghi chú cho Giám khảo: Mật khẩu kết nối Database thực tế đã được nhóm chủ ý để sẵn trong file `.env.example` thay vì giấu đi. Mục đích là để Thầy/Cô có thể chạy lệnh `npm run setup` và chấm đồ án ngay lập tức mà không cần tốn thời gian điền password cấu hình môi trường).*
 
 **Hoặc làm thủ công:**
 1. Copy file `.env.example` thành `.env` (File này đã được gắn sẵn DB URL của nhóm).
