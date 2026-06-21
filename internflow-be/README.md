@@ -19,14 +19,11 @@ npm install
 ```bash
 npm run setup
 ```
-Script sẽ hỏi mật khẩu database → tự tạo file `.env` → tự generate Prisma Client.
-
-> 💡 **Mật khẩu database hỏi nhóm trưởng** (chỉ cần nhập 1 lần duy nhất)
+Script sẽ tự động tạo file `.env` từ `.env.example` và generate Prisma Client. Mật khẩu kết nối Database đã được nhóm tích hợp sẵn trong file `.env.example`, bạn chỉ cần ấn Enter khi được hỏi.
 
 **Hoặc làm thủ công:**
-1. Copy file `.env.example` thành `.env`
-2. Thay `[YOUR-PASSWORD]` bằng mật khẩu thật
-3. Chạy `npx prisma generate`
+1. Copy file `.env.example` thành `.env` (File này đã được gắn sẵn DB URL của nhóm).
+2. Chạy `npx prisma generate`
 
 ### Bước 3: Chạy server
 ```bash
