@@ -20,7 +20,7 @@ InternFlow là một phần mềm Desktop (Internal HR System) được thiết 
 
 ## 3. Công nghệ sử dụng
 
-- **Language:** TypeScript
+- **Language:** TypeScript,javascript
 - **Framework:** Electron 36, React 19, Vite (Frontend) | Express.js (Backend)
 - **Database:** PostgreSQL (hosted trên Supabase) + Prisma ORM
 - **Test framework:** Vitest (`@vitest/coverage-v8`)
@@ -42,7 +42,7 @@ InternFlow là một phần mềm Desktop (Internal HR System) được thiết 
 
 - Mở Terminal tại thư mục `internflow-be`
 - Chạy lệnh `npm install`
-- Chạy lệnh `npm run setup` (Lưu ý: Lệnh này tự động copy link Database từ file `.env.example` sang `.env`. Nhóm đã chủ ý để sẵn password DB thực tế vào file `.env.example` nhằm mục đích giúp Thầy/Cô dễ dàng chạy thử và chấm đồ án mà không phải mất thời gian tự setup môi trường).
+- Chạy lệnh `npm run setup` (Lưu ý: Lệnh này tự động copy link Database từ file `.env.example` sang `.env`. Nhóm đã chủ ý để sẵn password DB thực tế vào file `.env.example` nhằm mục đích giúp dễ dàng chạy thử mà không phải mất thời gian tự setup môi trường).
 - Chạy lệnh `npm run start` (hoặc `npm run dev`). Đảm bảo Server báo chạy thành công ở cổng 4000.
 
 **Bước 2: Mở Frontend Desktop App**
@@ -64,8 +64,8 @@ Hệ thống được tổ chức theo cấu trúc Monorepo. Cần mở 2 termin
 ```bash
 cd internflow-be
 npm install
-# Khởi tạo file .env chứa biến môi trường DATABASE_URL kết nối tới Supabase
-npx prisma generate
+# Tạo file .env tự động (có sẵn link Database) và generate Prisma Client
+npm run setup
 npm run dev
 ```
 
