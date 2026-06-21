@@ -88,6 +88,9 @@ Hệ thống sử dụng Vitest để Unit Test toàn bộ Business Logic ở t�
 ```bash
 cd internflow-be
 
+# Đảm bảo đã cài đặt các thư viện (bao gồm Vitest)
+npm install
+
 # Chạy Unit Test (20 Test Cases)
 npm run test
 
