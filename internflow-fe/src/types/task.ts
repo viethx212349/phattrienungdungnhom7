@@ -25,4 +25,6 @@ export interface Task {
   attachments?: { file_name: string; file_url?: string }[];
   submittedAt?: string;
   submissionLink?: string;
+  createdAt?: string;
+  closedAt?: string;
 }

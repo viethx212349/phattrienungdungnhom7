@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import Sidebar from "../components/Sidebar";
 import DataTable from "../components/DataTable";
 import FloatingButton from "../components/FloatingButton";
+import AboutPage from "./AboutPage";
 
 import CreateTaskModal from "../features/tasks/components/CreateTaskModal";
 import KanbanBoard from "../features/tasks/components/KanbanBoard";
@@ -15,7 +16,7 @@ const Dashboard = () => {
   const [isOpenModal, setIsOpenModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const activeTab = location.pathname.includes("/interns") ? "list" : "overview";
+  const activeTab = location.pathname.includes("/about") ? "about" : location.pathname.includes("/interns") ? "list" : "overview";
   const [tasks, setTasks] = useState<Task[]>([]);
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
@@ -33,6 +34,9 @@ const Dashboard = () => {
         displayStatus: t.display_status,
         rejectedCount: t.rejected_count,
         attachments: [], // We can fetch attachments later if needed
+        createdAt: t.created_at,
+        closedAt: t.closed_at,
+        submittedAt: t.submitted_at,
       }));
       setTasks(mappedTasks);
     } catch (err) {
@@ -103,7 +107,7 @@ const Dashboard = () => {
     }`}>
       <Sidebar
         activeTab={activeTab}
-        onTabChange={(tab) => navigate(tab === "overview" ? "/dashboard" : "/interns")}
+        onTabChange={(tab) => navigate(tab === "overview" ? "/dashboard" : tab === "list" ? "/interns" : "/about")}
         theme={theme}
         onThemeToggle={() =>
           setTheme((current) => (current === "light" ? "dark" : "light"))
@@ -114,7 +118,9 @@ const Dashboard = () => {
 
       <main className="ml-[260px] pt-[80px]">
         <div className="p-8">
-          {activeTab === "overview" ? (
+          {activeTab === "about" ? (
+            <AboutPage theme={theme} />
+          ) : activeTab === "overview" ? (
             <section>
               <div className="mb-6 flex items-start justify-between">
                 <div>

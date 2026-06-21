@@ -1,6 +1,6 @@
-import { LayoutDashboard, Moon, Sun, Users } from "lucide-react";
+import { LayoutDashboard, Moon, Sun, Users, Info, LogOut } from "lucide-react";
 
-type SidebarTab = "overview" | "list";
+type SidebarTab = "overview" | "list" | "about";
 
 type ThemeMode = "light" | "dark";
 
@@ -96,7 +96,44 @@ const Sidebar = ({
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           {theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}
         </button>
+
+        <button
+          type="button"
+          onClick={() => onTabChange("about")}
+          className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${
+            activeTab === "about"
+              ? theme === "dark"
+                ? "bg-blue-900 font-semibold text-white shadow-sm"
+                : "bg-white font-semibold text-black shadow-sm"
+              : theme === "dark"
+                ? "text-slate-300 hover:bg-blue-900"
+                : "text-gray-600 hover:bg-white"
+          }`}
+        >
+          <Info size={18} />
+          Giới thiệu
+        </button>
       </nav>
+
+      {/* Nút Thoát ứng dụng */}
+      <div className="mt-4 px-1">
+        <button
+          type="button"
+          onClick={() => {
+            if (window.confirm("Bạn có chắc chắn muốn thoát ứng dụng?")) {
+              window.electronAPI?.quitApp();
+            }
+          }}
+          className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm transition ${
+            theme === "dark"
+              ? "text-red-400 hover:bg-red-900/30"
+              : "text-red-500 hover:bg-red-50"
+          }`}
+        >
+          <LogOut size={18} />
+          Thoát ứng dụng
+        </button>
+      </div>
 
 
 

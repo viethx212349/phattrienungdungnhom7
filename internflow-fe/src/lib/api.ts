@@ -1,4 +1,5 @@
-const API_BASE = "/api";
+// Trong môi trường dev có thể dùng proxy "/api", nhưng khi build ra .exe (file://) thì cần full URL
+const API_BASE = "http://localhost:4000/api";
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${url}`, {
@@ -89,4 +90,12 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+
+  // ── Notifications ──
+  getNotifications: () => request<any[]>("/notifications"),
+  getUnreadCount: () => request<any>("/notifications/unread-count"),
+  markAsRead: (id: string) =>
+    request<any>(`/notifications/${id}/read`, { method: "PATCH" }),
+  markAllAsRead: () =>
+    request<any>("/notifications/read-all", { method: "PATCH" }),
 };

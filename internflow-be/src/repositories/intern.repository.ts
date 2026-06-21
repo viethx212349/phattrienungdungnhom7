@@ -10,7 +10,11 @@ export const internRepository = {
     const where = status ? { status } : undefined;
     return await prisma.interns.findMany({
       where,
-      orderBy: { full_name: 'asc' },
+      orderBy: [
+        { status: 'asc' },      // ACTIVE -> FAILED -> PASSED (A first)
+        { created_at: 'desc' }, // Newest first
+        { full_name: 'asc' }    // Fallback A-Z
+      ],
       select: {
         id: true,
         full_name: true,

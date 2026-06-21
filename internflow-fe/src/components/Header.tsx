@@ -1,5 +1,6 @@
-import { Bell, CircleUserRound } from "lucide-react";
-//Bell = icon chuông thông báo, CircleUserRound = icon người dùng tròn
+import { CircleUserRound } from "lucide-react";
+import NotificationDropdown from "./NotificationDropdown";
+//CircleUserRound = icon người dùng tròn
 type ThemeMode = "light" | "dark";
 
 interface HeaderProps {
@@ -17,7 +18,7 @@ const Header = ({ theme }: HeaderProps) => {
     >
       <h2 className="text-sm font-bold uppercase tracking-[0.25em]">Intern Management</h2>
       <div className="flex items-center gap-5">
-        <Bell className="cursor-pointer" />
+        <NotificationDropdown theme={theme} />
         <CircleUserRound className="cursor-pointer" />
       </div>
     </header>
@@ -25,3 +26,4 @@ const Header = ({ theme }: HeaderProps) => {
 };
 
 export default Header;
+

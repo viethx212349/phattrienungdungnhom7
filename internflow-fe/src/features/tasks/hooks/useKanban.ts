@@ -27,10 +27,25 @@ export const displayStatusStyles: Record<DisplayTaskStatus, string> = {
 };
 
 export const getColumnTasks = (status: RawTaskStatus, tasks: Task[]) => {
-  const filtered = tasks.filter((task) => task.rawStatus === status);
+  let filtered = tasks.filter((task) => task.rawStatus === status);
 
   if (status === "TODO") {
-    return filtered.filter((task) => !task.assigneeId && !task.dueDate);
+    filtered = filtered.filter((task) => !task.assigneeId && !task.dueDate);
+    // TODO: Sắp xếp theo ngày tạo (mới nhất lên đầu)
+    filtered.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  } else if (status === "IN_PROGRESS") {
+    // IN_PROGRESS: Sắp xếp theo deadline (gần nhất lên đầu)
+    filtered.sort((a, b) => {
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
+  } else if (status === "IN_REVIEW") {
+    // IN_REVIEW: Sắp xếp theo ngày nộp (mới nộp lên đầu)
+    filtered.sort((a, b) => new Date(b.submittedAt || b.createdAt || 0).getTime() - new Date(a.submittedAt || a.createdAt || 0).getTime());
+  } else if (status === "DONE") {
+    // DONE: Sắp xếp theo ngày hoàn thành (mới xong lên đầu)
+    filtered.sort((a, b) => new Date(b.closedAt || b.createdAt || 0).getTime() - new Date(a.closedAt || a.createdAt || 0).getTime());
   }
 
   return filtered;

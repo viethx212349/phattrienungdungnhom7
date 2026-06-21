@@ -5,6 +5,7 @@ import path from 'path';
 import internRoutes from './routes/intern.routes';
 import taskRoutes from './routes/tasks.routes';
 import uploadRoutes from './routes/upload.routes';
+import notificationRoutes from './routes/notification.routes';
 import { startOverdueTaskScheduler } from './lib/scheduler';
 
 // Load environment variables
@@ -26,6 +27,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/interns', internRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 
 // ========================

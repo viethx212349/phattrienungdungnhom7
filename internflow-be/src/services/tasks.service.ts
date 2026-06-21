@@ -1,6 +1,7 @@
 import { task_status } from '@prisma/client';
 import { tasksRepository } from '../repositories/tasks.repository';
 import { internRepository } from '../repositories/intern.repository';
+import { notificationService } from './notification.service';
 
 type TaskDisplayStatus =
   | 'UNASSIGNED'
@@ -195,6 +196,16 @@ export const taskService = {
       submitted_at: null,
       closed_at: null
     });
+
+    // Observer Pattern: thông báo cho intern khi task bị reject
+    if (task.intern_id) {
+      try {
+        await notificationService.notifyTaskRejected(task.intern_id, task.title, id, feedback);
+      } catch (err) {
+        console.error('[Notification] Không thể gửi thông báo REJECTED:', err);
+      }
+    }
+
     return mapTaskDetail(updated);
   },
 
@@ -243,6 +254,14 @@ export const taskService = {
         assigned_at: now,
         task_attachments: taskAttachments
       });
+
+      // Observer Pattern: thông báo cho intern khi được giao task mới
+      try {
+        await notificationService.notifyNewTask(data.intern_id, data.title.trim(), task.id);
+      } catch (err) {
+        console.error('[Notification] Không thể gửi thông báo NEW_TASK:', err);
+      }
+
       return mapTaskSummary(task);
     }
 
@@ -282,6 +301,14 @@ export const taskService = {
       assigned_at: new Date(),
       status: 'IN_PROGRESS'
     });
+
+    // Observer Pattern: thông báo cho intern khi được assign task
+    try {
+      await notificationService.notifyNewTask(data.intern_id, task.title, id);
+    } catch (err) {
+      console.error('[Notification] Không thể gửi thông báo NEW_TASK:', err);
+    }
+
     return mapTaskSummary(updated);
   },
 
@@ -348,7 +375,7 @@ export const taskService = {
 
     return {
       ...updatedTask,
-      display_status: computeTaskDisplayStatus(updatedTask.status, updatedTask.due_date, updatedTask.rejected_count)
+      display_status: computeTaskDisplayStatus(updatedTask.status, updatedTask.rejected_count, updatedTask.submitted_at)
     };
   },
 
