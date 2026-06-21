@@ -35,16 +35,19 @@ InternFlow là một phần mềm Desktop (Internal HR System) được thiết 
 - **Database:** Hệ thống đã tự động kết nối đến Cloud Database (Supabase PostgreSQL) qua connection string nội bộ.
 
 ### 4.2. Các bước chạy
+
 ⚠️ **Quan trọng:** Ứng dụng Desktop (Frontend) yêu cầu phải có API Server (Backend) chạy ngầm để lấy dữ liệu.
 
 **Bước 1: Khởi chạy Backend API**
+
 - Mở Terminal tại thư mục `internflow-be`
 - Chạy lệnh `npm install`
 - Chạy lệnh `npm run setup` (ấn Enter để tự động lấy link Database đã cấu hình sẵn).
 - Chạy lệnh `npm run start` (hoặc `npm run dev`). Đảm bảo Server báo chạy thành công ở cổng 4000.
 
 **Bước 2: Mở Frontend Desktop App**
-1. Tải file `InternFlow-Setup.exe` do nhóm cung cấp (từ thư mục Deploy/Release).
+
+1. Tải file `InternFlow Setup 1.0.0` do nhóm cung cấp (từ thư mục /Release).
 2. Click đúp vào file `.exe` để tiến hành cài đặt.
 3. Mở phần mềm `InternFlow` từ màn hình Desktop hoặc Start Menu. Lúc này App sẽ tự động kết nối với Backend ở Bước 1.
 
