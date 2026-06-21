@@ -1,4 +1,10 @@
-import { ChangeEvent, useState } from "react";
+import {
+  ChangeEvent,
+  ReactNode,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import { X, UploadCloud } from "lucide-react";
 import apiClient, { uploadFiles } from "../lib/apiClient";
 import { Task } from "../types";
@@ -18,6 +24,27 @@ const displayStatusLabels: Record<Task["display_status"], string> = {
   OVERDUE: "Trễ hạn",
 };
 
+// Adapter pattern: chuẩn hóa các kiểu lỗi khác nhau (Axios error, Error,
+// unknown) về một message string duy nhất, không phụ thuộc state nào của
+// component nên đặt ở module scope để không bị khai báo lại mỗi lần render.
+function getErrorMessage(err: unknown, fallback: string): string {
+  const axiosError = err as any;
+  return (
+    axiosError?.response?.data?.message || axiosError?.message || fallback
+  );
+}
+
+function InfoField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
 export default function MentorTaskReviewModal({
   task,
   onClose,
@@ -28,82 +55,134 @@ export default function MentorTaskReviewModal({
   const [submitting, setSubmitting] = useState(false);
   const [newAttachments, setNewAttachments] = useState<File[]>([]);
 
-  const handleFileAdd = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileAdd = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     setNewAttachments((prev) => [...prev, file]);
     event.target.value = "";
-  };
+  }, []);
 
-  const handleRemoveAttachment = (index: number) => {
+  const handleRemoveAttachment = useCallback((index: number) => {
     setNewAttachments((prev) => prev.filter((_, idx) => idx !== index));
-  };
+  }, []);
 
-  const uploadAttachmentsIfAny = async () => {
+  const uploadAttachmentsIfAny = useCallback(async () => {
     if (newAttachments.length === 0) return;
     const formData = new FormData();
     newAttachments.forEach((file) => formData.append("files", file));
     await uploadFiles(`/tasks/${task.id}/attachments`, formData);
-  };
+  }, [newAttachments, task.id]);
 
   const isReviewMode = task.status === "IN_REVIEW";
-  const assignee = task.intern_name ?? task.intern?.full_name ?? "Chưa gán";
-  const submittedAt = task.submitted_at
-    ? new Date(task.submitted_at).toLocaleDateString("vi-VN")
-    : task.updated_at
-      ? new Date(task.updated_at).toLocaleDateString("vi-VN")
-      : "Chưa cập nhật";
 
-  const submissionLink = task.submission_link;
-  const attachments = task.task_attachments ?? [];
+  const assignee = useMemo(
+    () => task.intern_name ?? task.intern?.full_name ?? "Chưa gán",
+    [task.intern_name, task.intern?.full_name],
+  );
 
-  const handleApprove = async () => {
-    setSubmitting(true);
-    setError(null);
-    try {
-      await apiClient.patch(`/tasks/${task.id}/approve`, {
-        mentor_feedback: comment.trim() || null,
-      });
-      await uploadAttachmentsIfAny();
-      onSaved?.();
-      onClose();
-    } catch (err) {
-      const axiosError = err as any;
-      setError(
-        axiosError?.response?.data?.message ||
-          axiosError?.message ||
-          "Duyệt task thất bại",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const submittedAt = useMemo(() => {
+    const date = task.submitted_at ?? task.updated_at;
+    return date ? new Date(date).toLocaleDateString("vi-VN") : "Chưa cập nhật";
+  }, [task.submitted_at, task.updated_at]);
 
-  const handleReject = async () => {
-    if (!comment.trim()) {
-      setError("Vui lòng nhập nhận xét khi yêu cầu làm lại.");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    try {
-      await apiClient.patch(`/tasks/${task.id}/reject`, {
-        mentor_feedback: comment.trim(),
-      });
-      await uploadAttachmentsIfAny();
-      onSaved?.();
-      onClose();
-    } catch (err) {
-      const axiosError = err as any;
-      setError(
-        axiosError?.response?.data?.message ||
-          axiosError?.message ||
-          "Yêu cầu làm lại thất bại",
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const attachments = useMemo(
+    () => task.task_attachments ?? [],
+    [task.task_attachments],
+  );
+
+  // Factory Method pattern: mỗi loại "tài liệu nộp" (link / file đính kèm /
+  // chưa nộp) có một factory dựng JSX riêng; submissionViewType chỉ chọn
+  // factory phù hợp dựa trên dữ liệu, không cần if/else lồng nhau khi render.
+  const submissionViewFactories = useMemo(
+    () => ({
+      link: () => (
+        <a
+          href={task.submission_link!}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="mt-2 block text-base font-semibold text-sky-700 underline"
+        >
+          Mở liên kết nộp bài
+        </a>
+      ),
+      attachments: () => (
+        <div className="mt-2 space-y-2">
+          {attachments.map((attachment) => (
+            <a
+              key={attachment.id}
+              href={attachment.file_url}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="block rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 transition hover:border-slate-300"
+            >
+              {attachment.file_name}
+            </a>
+          ))}
+        </div>
+      ),
+      empty: () => (
+        <p className="mt-2 text-base text-slate-700">Chưa có tài liệu nộp</p>
+      ),
+    }),
+    [task.submission_link, attachments],
+  );
+
+  const submissionViewType: keyof typeof submissionViewFactories = task
+    .submission_link
+    ? "link"
+    : attachments.length > 0
+      ? "attachments"
+      : "empty";
+
+  // Strategy pattern: mỗi action (approve/reject) định nghĩa cách validate,
+  // endpoint, payload và message lỗi riêng; runAction xử lý phần chung.
+  const reviewStrategies = useMemo(
+    () => ({
+      approve: {
+        endpoint: `/tasks/${task.id}/approve`,
+        validate: () => null as string | null,
+        buildPayload: () => ({ mentor_feedback: comment.trim() || null }),
+        errorMessage: "Duyệt task thất bại",
+      },
+      reject: {
+        endpoint: `/tasks/${task.id}/reject`,
+        validate: () =>
+          comment.trim()
+            ? null
+            : "Vui lòng nhập nhận xét khi yêu cầu làm lại.",
+        buildPayload: () => ({ mentor_feedback: comment.trim() }),
+        errorMessage: "Yêu cầu làm lại thất bại",
+      },
+    }),
+    [task.id, comment],
+  );
+
+  const runAction = useCallback(
+    async (action: keyof typeof reviewStrategies) => {
+      const strategy = reviewStrategies[action];
+      const validationError = strategy.validate();
+      if (validationError) {
+        setError(validationError);
+        return;
+      }
+      setSubmitting(true);
+      setError(null);
+      try {
+        await apiClient.patch(strategy.endpoint, strategy.buildPayload());
+        await uploadAttachmentsIfAny();
+        onSaved?.();
+        onClose();
+      } catch (err) {
+        setError(getErrorMessage(err, strategy.errorMessage));
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [reviewStrategies, uploadAttachmentsIfAny, onSaved, onClose],
+  );
+
+  const handleApprove = useCallback(() => runAction("approve"), [runAction]);
+  const handleReject = useCallback(() => runAction("reject"), [runAction]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -128,76 +207,31 @@ export default function MentorTaskReviewModal({
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <div className="rounded-3xl border border-slate-200 bg-slate-50 p-5">
             <div className="space-y-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                  Người thực hiện
-                </p>
+              <InfoField label="Người thực hiện">
                 <p className="mt-2 text-base font-semibold text-slate-900">
                   {assignee}
                 </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                  Ngày nộp
-                </p>
+              </InfoField>
+              <InfoField label="Ngày nộp">
                 <p className="mt-2 text-base text-slate-700">{submittedAt}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                  Tài liệu nộp
-                </p>
-                {submissionLink ? (
-                  <a
-                    href={submissionLink}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="mt-2 block text-base font-semibold text-sky-700 underline"
-                  >
-                    Mở liên kết nộp bài
-                  </a>
-                ) : attachments.length > 0 ? (
-                  <div className="mt-2 space-y-2">
-                    {attachments.map((attachment) => (
-                      <a
-                        key={attachment.id}
-                        href={attachment.file_url}
-                        target="_blank"
-                        rel="noreferrer noopener"
-                        className="block rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 transition hover:border-slate-300"
-                      >
-                        {attachment.file_name}
-                      </a>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="mt-2 text-base text-slate-700">
-                    Chưa có tài liệu nộp
-                  </p>
-                )}
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                  Mô tả
-                </p>
+              </InfoField>
+              <InfoField label="Tài liệu nộp">
+                {submissionViewFactories[submissionViewType]()}
+              </InfoField>
+              <InfoField label="Mô tả">
                 <p className="mt-2 text-sm leading-6 text-slate-700">
                   {task.description ?? "Không có mô tả"}
                 </p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                  Trạng thái reviews
-                </p>
+              </InfoField>
+              <InfoField label="Trạng thái reviews">
                 <span className="inline-flex rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
                   {displayStatusLabels[task.display_status]}
                 </span>
-              </div>
+              </InfoField>
             </div>
           </div>
           <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                Nhận xét từ mentor
-              </p>
+            <InfoField label="Nhận xét từ mentor">
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
@@ -205,7 +239,7 @@ export default function MentorTaskReviewModal({
                 className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-400"
                 placeholder="Nhập nhận xét hoặc lý do yêu cầu làm lại..."
               />
-            </div>
+            </InfoField>
             {isReviewMode ? (
               <div className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4">
                 <div className="flex items-center justify-between gap-3">
@@ -253,7 +287,6 @@ export default function MentorTaskReviewModal({
                 >
                   {submitting ? "Đang gửi..." : "Yêu cầu làm lại"}
                 </button>
-               {/* từ chối duyệt task */}
                 <button
                   onClick={handleApprove}
                   disabled={submitting}
